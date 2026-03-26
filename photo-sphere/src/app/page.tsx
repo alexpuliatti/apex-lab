@@ -226,9 +226,11 @@ export default function PhotoSphere() {
 
   return (
     <div 
-      className="relative h-[100dvh] w-full bg-black overflow-hidden"
+      className="relative h-[100dvh] w-full bg-black overflow-hidden select-none touch-none"
       onPointerDown={() => setHasInteracted(true)}
       onWheel={() => setHasInteracted(true)}
+      onContextMenu={(e) => e.preventDefault()}
+      style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
     >
       <Canvas camera={{ position: [0, 0, 25], fov: 60 }}>
         <ambientLight intensity={0.8} />
