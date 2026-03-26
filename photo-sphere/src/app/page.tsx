@@ -9,14 +9,20 @@ import * as THREE from "three"
 // Import data
 import { nodes as initialNodes, links as initialLinks } from "../data/graphData"
 
-function ImageNode({ node }: { node: any }) {
+function ImageNode({ node, onClick, highlightState }: { node: any, onClick: () => void, highlightState: 'connected' | 'dimmed' | 'none' }) {
   const meshRef = useRef<THREE.Mesh>(null)
+  const [hovered, setHovered] = useState(false)
   const texture = useLoader(THREE.TextureLoader, node.imagePath) as THREE.Texture
+  const currentOpacity = useRef(0.8)
   
   useMemo(() => {
     texture.minFilter = THREE.LinearFilter
     texture.magFilter = THREE.LinearFilter
   }, [texture])
+
+  const targetOpacity = highlightState === 'dimmed' ? 0.12 
+    : highlightState === 'connected' ? 1 
+    : hovered ? 1 : 0.8
 
   useFrame(() => {
     if (meshRef.current) {
@@ -29,46 +35,119 @@ function ImageNode({ node }: { node: any }) {
         const target = meshRef.current.position.clone().add(direction)
         meshRef.current.lookAt(target)
       }
+      
+      // Smooth opacity lerp
+      currentOpacity.current = THREE.MathUtils.lerp(currentOpacity.current, targetOpacity, 0.08)
+      const mat = meshRef.current.material as THREE.MeshStandardMaterial
+      if (mat) mat.opacity = currentOpacity.current
     }
   })
 
   return (
-    <mesh ref={meshRef}>
-      <planeGeometry args={[4.5, 5.4]} />
-      <meshStandardMaterial map={texture} side={THREE.DoubleSide} transparent opacity={0.95} />
+    <mesh 
+      ref={meshRef}
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
+      onPointerOut={(e) => { e.stopPropagation(); setHovered(false); document.body.style.cursor = 'auto'; }}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+    >
+      <planeGeometry args={[3.5, 4.2]} />
+      <meshStandardMaterial map={texture} side={THREE.DoubleSide} transparent opacity={0.8} />
     </mesh>
   )
 }
 
-function KeywordNode({ node, onClick }: { node: any, onClick: () => void }) {
+// Visual config per node type
+function getNodeStyle(type: string, size: number = 1, hovered: boolean = false) {
+  const sizeScale = size || 1
+  switch (type) {
+    case 'chapter': return {
+      font: '/fonts/Arrow Font Regular.otf',
+      fontSize: (hovered ? 1.1 : 0.9) * sizeScale,
+      color: hovered ? '#ffffff' : '#e0e0e0',
+      outlineWidth: 0.04,
+      maxWidth: 18,
+    }
+    case 'era': return {
+      font: '/fonts/Arrow Font Regular.otf',
+      fontSize: (hovered ? 0.9 : 0.75) * sizeScale,
+      color: hovered ? '#ffd700' : '#c9a84c',
+      outlineWidth: 0.03,
+      maxWidth: 14,
+    }
+    case 'concept': return {
+      font: '/fonts/Arrow Font Regular.otf',
+      fontSize: (hovered ? 0.8 : 0.65) * sizeScale,
+      color: hovered ? '#ffffff' : '#C2384D',
+      outlineWidth: 0.03,
+      maxWidth: 14,
+    }
+    case 'person': return {
+      font: '/fonts/Geist-Regular.ttf',
+      fontSize: (hovered ? 0.55 : 0.42),
+      color: hovered ? '#ffffff' : '#6ec6e6',
+      outlineWidth: 0.02,
+      maxWidth: 10,
+    }
+    case 'quote': return {
+      font: '/fonts/Geist-Regular.ttf',
+      fontSize: (hovered ? 0.38 : 0.28),
+      color: hovered ? '#ffffff' : 'rgba(255,255,255,0.35)',
+      outlineWidth: 0.01,
+      maxWidth: 12,
+    }
+    default: return {
+      font: '/fonts/Arrow Font Regular.otf',
+      fontSize: 0.6,
+      color: '#C2384D',
+      outlineWidth: 0.03,
+      maxWidth: 14,
+    }
+  }
+}
+
+function TextNode({ node, onClick, onHover, highlightState }: { node: any, onClick: () => void, onHover: (id: string | null) => void, highlightState: 'connected' | 'dimmed' | 'none' }) {
   const ref = useRef<THREE.Group>(null)
+  const textRef = useRef<any>(null)
   const [hovered, setHovered] = useState(false)
+  const currentOpacity = useRef(1.0)
+  const currentScale = useRef(1.0)
+  
+  const effectiveHover = hovered || highlightState === 'connected'
+  const style = getNodeStyle(node.type, node.size, effectiveHover)
+  
+  const targetOpacity = highlightState === 'dimmed' ? 0.15 : 1.0
+  const targetScale = highlightState === 'connected' ? 1.15 : (highlightState === 'dimmed' ? 0.9 : 1.0)
 
   useFrame(() => {
     if (ref.current) {
       ref.current.position.set(node.pos.x, node.pos.y, node.pos.z)
+      currentScale.current = THREE.MathUtils.lerp(currentScale.current, targetScale, 0.08)
+      currentOpacity.current = THREE.MathUtils.lerp(currentOpacity.current, targetOpacity, 0.08)
+      ref.current.scale.setScalar(currentScale.current)
+      if (textRef.current) {
+        textRef.current.fillOpacity = currentOpacity.current
+      }
     }
   })
 
-  // Using Arrow Font Regular
   return (
     <group ref={ref}>
       <Billboard>
         <Text 
-          font="/fonts/Arrow Font Regular.otf"
-          fontSize={hovered ? 1.8 : 1.5} 
-          color={hovered ? "#ffffff" : "#00ff73"} 
-          outlineWidth={0.06} 
+          ref={textRef}
+          font={style.font}
+          fontSize={style.fontSize} 
+          color={style.color} 
+          outlineWidth={style.outlineWidth} 
           outlineColor="black" 
           anchorX="center" 
           anchorY="middle" 
           textAlign="center"
-          onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
-          onPointerOut={(e) => { e.stopPropagation(); setHovered(false); document.body.style.cursor = 'auto'; }}
-          onClick={(e) => {
-            e.stopPropagation()
-            onClick()
-          }}
+          maxWidth={style.maxWidth}
+          fillOpacity={1}
+          onClick={(e) => { e.stopPropagation(); onClick(); }}
+          onPointerOver={(e) => { e.stopPropagation(); setHovered(true); onHover(node.id); document.body.style.cursor = 'pointer'; }}
+          onPointerOut={(e) => { e.stopPropagation(); setHovered(false); onHover(null); document.body.style.cursor = 'auto'; }}
         >
           {node.label}
         </Text>
@@ -77,64 +156,224 @@ function KeywordNode({ node, onClick }: { node: any, onClick: () => void }) {
   )
 }
 
-function GraphLines({ links, nodes }: { links: any[], nodes: any[] }) {
+function GraphLines({ links, nodes, hoveredNodeId }: { links: any[], nodes: any[], hoveredNodeId: string | null }) {
   const lineGeometryRef = useRef<THREE.BufferGeometry>(null)
+  const highlightGeometryRef = useRef<THREE.BufferGeometry>(null)
+  const glowGeometryRef = useRef<THREE.BufferGeometry>(null)
   const positions = useMemo(() => new Float32Array(links.length * 6), [links.length])
+  const highlightPositions = useMemo(() => new Float32Array(links.length * 6), [links.length])
+  const highlightUvs = useMemo(() => new Float32Array(links.length * 2), [links.length])
 
-  useFrame(() => {
-    if (lineGeometryRef.current && lineGeometryRef.current.attributes.position) {
-      let i = 0
-      for (const link of links) {
-        const sourceNode = nodes.find(n => n.id === link.source)
-        const targetNode = nodes.find(n => n.id === link.target)
+  // Build node lookup for O(1)
+  const nodeMap = useMemo(() => {
+    const map = new Map<string, any>()
+    nodes.forEach(n => map.set(n.id, n))
+    return map
+  }, [nodes])
+
+  // Animated shader for highlighted links
+  const highlightShader = useMemo(() => new THREE.ShaderMaterial({
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    uniforms: {
+      uTime: { value: 0 },
+      uColor1: { value: new THREE.Color('#C2384D') },
+      uColor2: { value: new THREE.Color('#ffffff') },
+    },
+    vertexShader: `
+      attribute float aProgress;
+      varying float vProgress;
+      void main() {
+        vProgress = aProgress;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform vec3 uColor1;
+      uniform vec3 uColor2;
+      varying float vProgress;
+      void main() {
+        float flow = fract(vProgress - uTime * 0.4);
+        float wave = sin(flow * 6.2831) * 0.5 + 0.5;
+        vec3 color = mix(uColor1, uColor2, wave * 0.7);
+        float alpha = 0.5 + wave * 0.3;
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
+  }), [])
+
+  // Glow shader (softer, wider)
+  const glowShader = useMemo(() => new THREE.ShaderMaterial({
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    uniforms: {
+      uTime: { value: 0 },
+      uColor: { value: new THREE.Color('#C2384D') },
+    },
+    vertexShader: `
+      attribute float aProgress;
+      varying float vProgress;
+      void main() {
+        vProgress = aProgress;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform vec3 uColor;
+      varying float vProgress;
+      void main() {
+        float flow = fract(vProgress - uTime * 0.4);
+        float wave = sin(flow * 6.2831) * 0.5 + 0.5;
+        gl_FragColor = vec4(uColor, 0.15 + wave * 0.1);
+      }
+    `,
+  }), [])
+
+  useFrame((state) => {
+    const time = state.clock.elapsedTime
+    highlightShader.uniforms.uTime.value = time
+    glowShader.uniforms.uTime.value = time
+
+    let i = 0
+    let hi = 0
+    let ui = 0
+    for (const link of links) {
+      const sourceNode = nodeMap.get(link.source)
+      const targetNode = nodeMap.get(link.target)
+      
+      if (sourceNode && targetNode) {
+        const sx = sourceNode.pos.x || 0, sy = sourceNode.pos.y || 0, sz = sourceNode.pos.z || 0
+        const tx = targetNode.pos.x || 0, ty = targetNode.pos.y || 0, tz = targetNode.pos.z || 0
+        positions[i++] = sx; positions[i++] = sy; positions[i++] = sz
+        positions[i++] = tx; positions[i++] = ty; positions[i++] = tz
         
-        if (sourceNode && targetNode) {
-          positions[i++] = sourceNode.pos.x || 0
-          positions[i++] = sourceNode.pos.y || 0
-          positions[i++] = sourceNode.pos.z || 0
-          positions[i++] = targetNode.pos.x || 0
-          positions[i++] = targetNode.pos.y || 0
-          positions[i++] = targetNode.pos.z || 0
+        if (hoveredNodeId && (link.source === hoveredNodeId || link.target === hoveredNodeId)) {
+          highlightPositions[hi++] = sx; highlightPositions[hi++] = sy; highlightPositions[hi++] = sz
+          highlightPositions[hi++] = tx; highlightPositions[hi++] = ty; highlightPositions[hi++] = tz
+          highlightUvs[ui++] = 0  // start vertex
+          highlightUvs[ui++] = 1  // end vertex
         }
       }
-      
+    }
+    
+    if (lineGeometryRef.current?.attributes.position) {
       lineGeometryRef.current.attributes.position.needsUpdate = true
+    }
+    if (highlightGeometryRef.current?.attributes.position) {
+      highlightGeometryRef.current.attributes.position.needsUpdate = true
+      ;(highlightGeometryRef.current.attributes as any).aProgress.needsUpdate = true
+      highlightGeometryRef.current.setDrawRange(0, hi / 3)
+    }
+    if (glowGeometryRef.current?.attributes.position) {
+      glowGeometryRef.current.attributes.position.needsUpdate = true
+      ;(glowGeometryRef.current.attributes as any).aProgress.needsUpdate = true
+      glowGeometryRef.current.setDrawRange(0, hi / 3)
     }
   })
 
   return (
-    <lineSegments>
-      <bufferGeometry ref={lineGeometryRef}>
-        <bufferAttribute 
-          attach="attributes-position" 
-          args={[positions, 3]} 
-        />
-      </bufferGeometry>
-      <lineBasicMaterial color="#00ff73" transparent opacity={0.4} />
-    </lineSegments>
+    <group>
+      {/* Base links */}
+      <lineSegments>
+        <bufferGeometry ref={lineGeometryRef}>
+          <bufferAttribute 
+            attach="attributes-position" 
+            args={[positions, 3]} 
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color="#C2384D" transparent opacity={hoveredNodeId ? 0.1 : 0.4} />
+      </lineSegments>
+      {/* Glow pass (behind) */}
+      {hoveredNodeId && (
+        <lineSegments material={glowShader}>
+          <bufferGeometry ref={glowGeometryRef}>
+            <bufferAttribute attach="attributes-position" args={[highlightPositions.slice(), 3]} />
+            <bufferAttribute attach="attributes-aProgress" args={[highlightUvs.slice(), 1]} />
+          </bufferGeometry>
+        </lineSegments>
+      )}
+      {/* Highlighted links with flowing gradient */}
+      {hoveredNodeId && (
+        <lineSegments material={highlightShader}>
+          <bufferGeometry ref={highlightGeometryRef}>
+            <bufferAttribute attach="attributes-position" args={[highlightPositions, 3]} />
+            <bufferAttribute attach="attributes-aProgress" args={[highlightUvs, 1]} />
+          </bufferGeometry>
+        </lineSegments>
+      )}
+    </group>
   )
 }
 
-function GraphScene({ autoRotate, restartKey, filterMode, links, onSelectNode }: { autoRotate: boolean, restartKey: number, filterMode: 'all' | 'photo' | 'text', links: any[], onSelectNode: (n: any) => void }) {
+// Spring target distances by link type
+function getSpringLength(linkType?: string) {
+  switch (linkType) {
+    case 'timeline':    return 30
+    case 'semantic':    return 35
+    case 'attribution': return 25
+    case 'interview':   return 32
+    case 'visual':      return 20
+    default:            return 35
+  }
+}
+
+function GraphScene({ autoRotate, restartKey, filterMode, links, onSelectNode, onSelectImage, onDismiss }: { autoRotate: boolean, restartKey: number, filterMode: 'all' | 'photo' | 'text', links: any[], onSelectNode: (n: any) => void, onSelectImage: (imagePath: string) => void, onDismiss: () => void }) {
   const groupRef = useRef<THREE.Group>(null)
   
   const [physicsNodes] = useState(() => initialNodes.map(n => ({
     ...n,
-    pos: new THREE.Vector3((Math.random() - 0.5) * 80, (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 80),
+    pos: new THREE.Vector3((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100),
     vel: new THREE.Vector3()
   })))
 
+  // Build a lookup map for O(1) access
+  const nodeMap = useMemo(() => {
+    const map = new Map<string, typeof physicsNodes[0]>()
+    physicsNodes.forEach(n => map.set(n.id, n))
+    return map
+  }, [physicsNodes])
+
   useEffect(() => {
     physicsNodes.forEach(rn => {
-      rn.pos.set((Math.random() - 0.5) * 80, (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 80)
+      rn.pos.set((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100)
       rn.vel.set(0, 0, 0)
     })
-  }, [restartKey, physicsNodes, filterMode]) // Restart structure when filter mode changes
+  }, [physicsNodes, filterMode])
+
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
+  const [lockedNodeId, setLockedNodeId] = useState<string | null>(null)
+  const hoveredRef = useRef<string | null>(null)
+  const lockedRef = useRef<string | null>(null)
+  
+
+  
+  const handleHover = (id: string | null) => { hoveredRef.current = id; setHoveredNodeId(id) }
+  const handleLock = (id: string) => { 
+    if (lockedRef.current === id) {
+      lockedRef.current = null; setLockedNodeId(null)
+    } else {
+      lockedRef.current = id; setLockedNodeId(id)
+    }
+  }
+  const handleUnlock = () => { lockedRef.current = null; setLockedNodeId(null); onDismiss(); }
+  
+
+  
+  // Active node is locked (persistent) or hovered (temporary)
+  const activeNodeId = lockedNodeId || hoveredNodeId
 
   useFrame((state, delta) => {
+    // Freeze everything when a node is active (hovered or locked)
+    const frozen = hoveredRef.current || lockedRef.current
+    if (frozen) return
+
     const dt = Math.min(delta, 0.1) 
     
-    // 1. Repulsive forces
+    // 1. Repulsive forces (node-type aware)
     for (let i = 0; i < physicsNodes.length; i++) {
       for (let j = i + 1; j < physicsNodes.length; j++) {
         const n1 = physicsNodes[i]
@@ -145,23 +384,32 @@ function GraphScene({ autoRotate, restartKey, filterMode, links, onSelectNode }:
           diff.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize()
           dist = 0.1
         }
-        if (dist < 60) {
-          const force = diff.normalize().multiplyScalar(300 / (dist * dist))
+        if (dist < 70) {
+          const s1 = (n1.size || 1)
+          const s2 = (n2.size || 1)
+          const repulsionStrength = 400 * (s1 + s2) / 2
+          const force = diff.normalize().multiplyScalar(repulsionStrength / (dist * dist))
           n1.vel.add(force.clone().multiplyScalar(dt))
           n2.vel.sub(force.clone().multiplyScalar(dt))
+          
+          if (dist < 18) {
+            const pushForce = diff.clone().normalize().multiplyScalar(15 * (18 - dist))
+            n1.vel.add(pushForce.clone().multiplyScalar(dt))
+            n2.vel.sub(pushForce.clone().multiplyScalar(dt))
+          }
         }
       }
     }
     
-    // 2. Spring forces using dynamic passed LINKS!
+    // 2. Spring forces
     links.forEach(link => {
-      const source = physicsNodes.find(n => n.id === link.source)
-      const target = physicsNodes.find(n => n.id === link.target)
+      const source = nodeMap.get(link.source)
+      const target = nodeMap.get(link.target)
       if (source && target) {
         const diff = target.pos.clone().sub(source.pos)
         const dist = diff.length()
-        const targetDist = 30
-        const force = diff.normalize().multiplyScalar((dist - targetDist) * 0.6)
+        const targetDist = getSpringLength(link.type)
+        const force = diff.normalize().multiplyScalar((dist - targetDist) * 0.5)
         source.vel.add(force.clone().multiplyScalar(dt))
         target.vel.sub(force.clone().multiplyScalar(dt))
       }
@@ -169,35 +417,52 @@ function GraphScene({ autoRotate, restartKey, filterMode, links, onSelectNode }:
 
     // 3. Central gravity
     physicsNodes.forEach(node => {
-      node.vel.add(node.pos.clone().normalize().multiplyScalar(-0.3 * dt))
+      const gravityStrength = node.type === 'chapter' || node.type === 'era' ? 0.5 : 0.25
+      node.vel.add(node.pos.clone().normalize().multiplyScalar(-gravityStrength * dt))
     })
 
     // 4. Update positions & apply friction
     physicsNodes.forEach(node => {
-      node.vel.multiplyScalar(0.85)
+      node.vel.multiplyScalar(0.88)
       node.pos.add(node.vel.clone().multiplyScalar(dt))
     })
 
     if (groupRef.current && autoRotate) {
-      groupRef.current.rotation.y += delta * 0.15
+      groupRef.current.rotation.y += delta * 0.12
     }
   })
 
   const visibleNodes = useMemo(() => {
     if (filterMode === 'all') return physicsNodes
     if (filterMode === 'photo') return physicsNodes.filter(n => n.type === 'image')
-    if (filterMode === 'text') return physicsNodes.filter(n => n.type === 'keyword')
+    if (filterMode === 'text') return physicsNodes.filter(n => n.type !== 'image')
     return physicsNodes
   }, [physicsNodes, filterMode])
 
+  // Compute connected node IDs for hover/lock highlighting
+  const connectedIds = useMemo(() => {
+    if (!activeNodeId) return new Set<string>()
+    const ids = new Set<string>()
+    links.forEach(link => {
+      if (link.source === activeNodeId) ids.add(link.target)
+      if (link.target === activeNodeId) ids.add(link.source)
+    })
+    ids.add(activeNodeId)
+    return ids
+  }, [activeNodeId, links])
+
   return (
-    <group ref={groupRef}>
-      <GraphLines links={links} nodes={physicsNodes} />
+    <group ref={groupRef} onPointerMissed={handleUnlock}>
+      <GraphLines links={links} nodes={physicsNodes} hoveredNodeId={activeNodeId} />
       {visibleNodes.map((node) => {
-        if (node.type === "image") {
-          return <ImageNode key={node.id} node={node} />
+        const highlightState = !activeNodeId ? 'none' as const
+          : connectedIds.has(node.id) ? 'connected' as const
+          : 'dimmed' as const
+        
+        if (node.type === 'image') {
+          return <ImageNode key={node.id} node={node} onClick={() => onSelectImage(node.imagePath!)} highlightState={highlightState} />
         } else {
-          return <KeywordNode key={node.id} node={node} onClick={() => onSelectNode(node)} />
+          return <TextNode key={node.id} node={node} onClick={() => { handleLock(node.id); onSelectNode(node); }} onHover={handleHover} highlightState={highlightState} />
         }
       })}
     </group>
@@ -212,7 +477,17 @@ export default function PhotoSphere() {
   const [simulationRestartKey, setSimulationRestartKey] = useState(0)
   const [filterMode, setFilterMode] = useState<'all' | 'photo' | 'text'>('all')
   const [selectedKeyword, setSelectedKeyword] = useState<any | null>(null)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [showHint, setShowHint] = useState(false)
+  const [zoomReady, setZoomReady] = useState(false)
+
+  // HQ images for lightbox (originals ~1.7MB each)
+  const allImages = useMemo(() => 
+    Array.from({ length: 12 }, (_, i) => `/CS_slides_hq/slide_${String(i + 1).padStart(2, "0")}.jpg`), []
+  )
+  
+  // Map a thumbnail path to its HQ equivalent
+  const toHQ = (path: string) => path.replace('CS_slides/', 'CS_slides_hq/')
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 100)
@@ -222,6 +497,14 @@ export default function PhotoSphere() {
       clearTimeout(hintTimer)
     }
   }, [])
+
+  // Delay enabling zoom until logo transition completes
+  useEffect(() => {
+    if (hasInteracted && !zoomReady) {
+      const t = setTimeout(() => setZoomReady(true), 2200)
+      return () => clearTimeout(t)
+    }
+  }, [hasInteracted, zoomReady])
 
   const handleButtonClick = (buttonName: string, action: () => void) => {
     setClickedButton(buttonName)
@@ -234,21 +517,17 @@ export default function PhotoSphere() {
     if (filterMode === 'all') return initialLinks
     
     if (filterMode === 'text') {
-      const texts = initialNodes.filter(n => n.type === 'keyword').map(n => n.id)
-      const visibleSet = new Set(texts)
-      return initialLinks.filter(l => visibleSet.has(l.source) && visibleSet.has(l.target))
+      // Show all non-image nodes and their links
+      const textIds = new Set(initialNodes.filter(n => n.type !== 'image').map(n => n.id))
+      return initialLinks.filter(l => textIds.has(l.source) && textIds.has(l.target))
     }
     
     if (filterMode === 'photo') {
-      // Create a web directly between images so they clump together gracefully
       const images = initialNodes.filter(n => n.type === 'image').map(n => n.id)
-      const newLinks = []
+      const newLinks: typeof initialLinks = []
       for (let i = 0; i < images.length; i++) {
-        // chain them into a circle
-        newLinks.push({ source: images[i], target: images[(i+1)%images.length] })
-        // cross hatch them to form a web ball
-        if (i % 2 === 0) newLinks.push({ source: images[i], target: images[(i+9)%images.length] })
-        if (i % 3 === 0) newLinks.push({ source: images[i], target: images[(i+16)%images.length] })
+        newLinks.push({ source: images[i], target: images[(i+1)%images.length], type: 'visual' })
+        if (i % 2 === 0) newLinks.push({ source: images[i], target: images[(i+4)%images.length], type: 'visual' })
       }
       return newLinks
     }
@@ -297,31 +576,39 @@ export default function PhotoSphere() {
                 filterMode={filterMode} 
                 links={visibleLinks}
                 onSelectNode={(node) => setSelectedKeyword(node)}
+                onSelectImage={(path) => setSelectedImage(toHQ(path))}
+                onDismiss={() => { setSelectedKeyword(null); setSelectedImage(null); }}
               />
             </Suspense>
             
-            <OrbitControls enableZoom={true} enablePan={true} autoRotate={false} enableDamping={true} dampingFactor={0.05} minDistance={10} maxDistance={100} />
+            <OrbitControls enableZoom={zoomReady} enablePan={true} autoRotate={false} enableDamping={true} dampingFactor={0.05} minDistance={10} maxDistance={250} />
           </Canvas>
         </div>
 
         <div 
-          className={`absolute z-10 pointer-events-none transition-all duration-1500 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
-            hasInteracted 
-              ? "top-6 left-6 md:top-8 md:left-8 translate-x-0 translate-y-0" 
-              : `top-1/2 left-1/2 -translate-x-1/2 ${mounted ? "-translate-y-1/2 scale-125" : "-translate-y-[40%] scale-100"}`
-          }`}
+          className="absolute z-10 pointer-events-none"
           style={{
-            opacity: hasInteracted ? 0.6 : (mounted ? 1 : 0)
+            top: hasInteracted ? '24px' : '50%',
+            left: hasInteracted ? '24px' : '50%',
+            transform: hasInteracted 
+              ? 'translate(0, 0) scale(1)' 
+              : `translate(-50%, -50%) scale(${mounted ? 1.25 : 1})`,
+            opacity: hasInteracted ? 0.6 : (mounted ? 1 : 0),
+            transition: 'all 2s cubic-bezier(0.16, 1, 0.3, 1)',
+            willChange: 'transform, opacity, top, left',
           }}
         >
           <img 
             src="/materials/apex_logo.png" 
             alt="Apex Logo" 
-            className={`h-auto object-contain drop-shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-all duration-1500 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
-              hasInteracted ? "w-20 md:w-32" : "w-[80vw] max-w-[800px] max-h-[80vh]"
-            }`} 
             style={{
-               animation: hasInteracted ? "none" : "pulseLogo 4s ease-in-out infinite alternate 1.2s"
+              width: hasInteracted ? '80px' : 'min(80vw, 800px)',
+              height: 'auto',
+              objectFit: 'contain' as const,
+              filter: 'drop-shadow(0 0 40px rgba(255,255,255,0.05))',
+              transition: 'width 2s cubic-bezier(0.16, 1, 0.3, 1)',
+              willChange: 'width',
+              animation: hasInteracted ? 'none' : 'pulseLogo 4s ease-in-out infinite alternate 1.2s',
             }}
           />
         </div>
@@ -340,8 +627,8 @@ export default function PhotoSphere() {
           <ChevronDown className="w-5 h-5 text-white/60 animate-bounce" strokeWidth={1.5} />
         </div>
 
-        {/* Top Navbar – frosted liquid glass pill */}
-        <div className={`absolute top-6 left-1/2 -translate-x-1/2 md:top-8 z-20 pointer-events-auto transition-opacity duration-1000 ${mounted && hasInteracted ? "opacity-100" : "opacity-0 invisible"}`}>
+        {/* Bottom Navbar – frosted liquid glass pill */}
+        <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 md:bottom-8 z-20 pointer-events-auto transition-opacity duration-1000 ${mounted && hasInteracted ? "opacity-100" : "opacity-0 invisible"}`}>
           <div
             className="flex items-center gap-0 rounded-full overflow-hidden"
             style={{
@@ -377,28 +664,8 @@ export default function PhotoSphere() {
           </div>
         </div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 md:bottom-10 md:right-12 md:left-auto md:translate-x-0 flex gap-0 rounded-full overflow-hidden z-20 pointer-events-auto transition-opacity duration-1000" style={{ opacity: mounted && hasInteracted ? 1 : 0, background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(1.4)', WebkitBackdropFilter: 'blur(24px) saturate(1.4)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.4)', padding: '4px' }}>
-          <button
-            onClick={() => handleButtonClick("restart", () => setSimulationRestartKey(prev => prev + 1))}
-            className={`p-2 sm:p-3 border-r border-white/20 transition-all duration-150 bg-transparent hover:bg-white/10 text-white ${clickedButton === "restart" ? "scale-90" : "scale-100"}`}
-            title="Restart Physics Simulation"
-          >
-            <RefreshCcw className="h-4 w-4 sm:h-5 sm:w-5" />
-          </button>
-          <button
-            onClick={() => handleButtonClick("rotate", () => setAutoRotate(!autoRotate))}
-            className={`p-2 sm:p-3 transition-all duration-150 ${
-              autoRotate
-                ? "bg-white text-black"
-                : "bg-transparent hover:bg-white/10 text-white"
-            } ${clickedButton === "rotate" ? "scale-90" : "scale-100"}`}
-            title="Toggle auto-rotation"
-          >
-            <RotateCw className="h-4 w-4 sm:h-5 sm:w-5" />
-          </button>
-        </div>
 
-        {/* Selected Keyword Popup Overlay */}
+        {/* Selected Node Popup Overlay */}
         {selectedKeyword && (
           <div 
             className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-md transition-all duration-300 opacity-100"
@@ -415,14 +682,91 @@ export default function PhotoSphere() {
               >
                 ✕
               </button>
-              <h2 className="text-3xl md:text-4xl text-[#00ff73] mb-4 tracking-wide drop-shadow-[0_0_15px_rgba(0,255,115,0.3)]" style={{ fontFamily: 'ArrowFont, sans-serif' }}>
+              {/* Type badge */}
+              <span className="inline-block px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-full mb-4" style={{
+                fontFamily: 'Geist, sans-serif',
+                background: selectedKeyword.type === 'chapter' ? 'rgba(255,255,255,0.12)' :
+                  selectedKeyword.type === 'era' ? 'rgba(201,168,76,0.2)' :
+                  selectedKeyword.type === 'person' ? 'rgba(110,198,230,0.2)' :
+                  selectedKeyword.type === 'quote' ? 'rgba(255,255,255,0.08)' :
+                  'rgba(194,56,77,0.2)',
+                color: selectedKeyword.type === 'era' ? '#c9a84c' :
+                  selectedKeyword.type === 'person' ? '#6ec6e6' :
+                  selectedKeyword.type === 'chapter' ? '#ffffff' :
+                  '#C2384D',
+              }}>
+                {selectedKeyword.type}{selectedKeyword.role ? ` · ${selectedKeyword.role}` : ''}
+              </span>
+              <h2 className="text-2xl md:text-3xl mb-4 tracking-wide" style={{ 
+                fontFamily: selectedKeyword.type === 'quote' ? 'Geist, sans-serif' : 'ArrowFont, sans-serif',
+                fontStyle: selectedKeyword.type === 'quote' ? 'italic' : 'normal',
+                color: selectedKeyword.type === 'era' ? '#c9a84c' :
+                  selectedKeyword.type === 'person' ? '#6ec6e6' :
+                  selectedKeyword.type === 'chapter' ? '#ffffff' : '#C2384D',
+              }}>
                 {selectedKeyword.label}
               </h2>
+              {selectedKeyword.source && (
+                <p className="text-white/30 text-sm mb-4" style={{ fontFamily: 'Geist, sans-serif' }}>— {selectedKeyword.source}</p>
+              )}
               <div className="w-12 h-[1px] bg-white/20 mb-6" />
-              <p className="text-white/80 text-lg md:text-xl leading-relaxed font-light" style={{ fontFamily: 'Geist, sans-serif' }}>
+              <p className="text-white/80 text-base md:text-lg leading-relaxed font-light" style={{ fontFamily: 'Geist, sans-serif' }}>
                 {selectedKeyword.description}
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Image Lightbox */}
+        {selectedImage && (
+          <div 
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xl transition-all duration-300"
+            onClick={() => setSelectedImage(null)}
+          >
+            {/* Prev */}
+            <button
+              className="absolute left-6 top-1/2 -translate-y-1/2 p-3 text-white/40 hover:text-white transition-colors z-10"
+              onClick={(e) => {
+                e.stopPropagation()
+                const idx = allImages.indexOf(selectedImage)
+                setSelectedImage(allImages[(idx - 1 + allImages.length) % allImages.length])
+              }}
+            >
+              <ChevronDown className="w-8 h-8 rotate-90" />
+            </button>
+
+            {/* Image */}
+            <div className="relative max-w-3xl max-h-[85vh] pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+              <img 
+                src={selectedImage} 
+                alt="Editorial" 
+                className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-[0_30px_80px_rgba(0,0,0,0.8)]"
+              />
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-xs tracking-[0.2em] uppercase" style={{ fontFamily: 'Geist, sans-serif' }}>
+                {allImages.indexOf(selectedImage) + 1} / {allImages.length}
+              </div>
+            </div>
+
+            {/* Next */}
+            <button
+              className="absolute right-6 top-1/2 -translate-y-1/2 p-3 text-white/40 hover:text-white transition-colors z-10"
+              onClick={(e) => {
+                e.stopPropagation()
+                const idx = allImages.indexOf(selectedImage)
+                setSelectedImage(allImages[(idx + 1) % allImages.length])
+              }}
+            >
+              <ChevronDown className="w-8 h-8 -rotate-90" />
+            </button>
+
+            {/* Close */}
+            <button 
+              className="absolute top-6 right-6 text-white/40 hover:text-white transition-colors text-xl"
+              onClick={() => setSelectedImage(null)}
+              style={{ fontFamily: 'Geist, sans-serif' }}
+            >
+              ✕
+            </button>
           </div>
         )}
       </div>
