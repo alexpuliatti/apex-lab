@@ -226,7 +226,7 @@ export default function PhotoSphere() {
 
   return (
     <div 
-      className="relative h-screen w-full bg-black overflow-hidden"
+      className="relative h-[100dvh] w-full bg-black overflow-hidden"
       onPointerDown={() => setHasInteracted(true)}
       onWheel={() => setHasInteracted(true)}
     >
@@ -241,56 +241,55 @@ export default function PhotoSphere() {
       </Canvas>
 
       <div 
-        className="absolute z-10 pointer-events-none"
+        className={`absolute z-10 pointer-events-none transition-all duration-1000 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+          hasInteracted 
+            ? "top-6 left-6 md:top-8 md:left-8 translate-x-0 translate-y-0" 
+            : `top-1/2 left-1/2 -translate-x-1/2 ${mounted ? "-translate-y-1/2" : "-translate-y-[40%]"}`
+        }`}
         style={{
-          top: hasInteracted ? "2rem" : "50%",
-          left: hasInteracted ? "2rem" : "50%",
-          transform: hasInteracted 
-            ? "translate(0, 0) scale(0.15)" 
-            : `translate(-50%, ${mounted ? "-50%" : "-40%"}) scale(1)`,
-          transformOrigin: "top left",
-          opacity: hasInteracted ? 0.4 : (mounted ? 1 : 0),
-          transition: "all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)"
+          opacity: hasInteracted ? 0.6 : (mounted ? 1 : 0)
         }}
       >
         <img 
           src="/materials/apex_logo.png" 
           alt="Apex Logo" 
-          className="w-auto h-auto max-w-[80vw] max-h-[80vh] object-contain drop-shadow-[0_0_40px_rgba(255,255,255,0.05)]" 
+          className={`h-auto object-contain drop-shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-all duration-1000 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+            hasInteracted ? "w-20 md:w-32" : "w-[80vw] max-w-[800px] max-h-[80vh]"
+          }`} 
           style={{
              animation: hasInteracted ? "none" : "pulseLogo 4s ease-in-out infinite alternate 1.2s"
           }}
         />
       </div>
 
-      <div className="absolute bottom-20 right-36 flex gap-0 border border-white/20 bg-black/50 backdrop-blur-md rounded-lg overflow-hidden shadow-[0_0_20px_rgba(0,255,115,0.15)] z-20">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 md:bottom-10 md:right-12 md:left-auto md:translate-x-0 flex gap-0 border border-white/20 bg-black/50 backdrop-blur-md rounded-lg overflow-hidden shadow-[0_0_20px_rgba(0,255,115,0.15)] z-20">
         <button
           onClick={() => handleButtonClick("sphere", () => setPatternMode("sphere"))}
-          className={`p-3 border-r border-white/20 transition-all duration-150 ${
+          className={`p-2 sm:p-3 border-r border-white/20 transition-all duration-150 ${
             patternMode === "sphere" ? "bg-white text-black" : "bg-transparent hover:bg-white/10 text-white"
           } ${clickedButton === "sphere" ? "scale-90" : "scale-100"}`}
           title="Sphere view"
         >
-          <Orbit className="h-5 w-5" />
+          <Orbit className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
         <button
           onClick={() => handleButtonClick("gallery", () => setPatternMode("gallery"))}
-          className={`p-3 border-r border-white/20 transition-all duration-150 ${
+          className={`p-2 sm:p-3 border-r border-white/20 transition-all duration-150 ${
             patternMode === "gallery" ? "bg-white text-black" : "bg-transparent hover:bg-white/10 text-white"
           } ${clickedButton === "gallery" ? "scale-90" : "scale-100"}`}
           title="Gallery view"
         >
-          <Grid3x3 className="h-5 w-5" />
+          <Grid3x3 className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
         <button
           onClick={() => handleButtonClick("helix", () => setPatternMode("helix"))}
-          className={`p-3 border-r border-white/20 transition-all duration-150 ${
+          className={`p-2 sm:p-3 border-r border-white/20 transition-all duration-150 ${
             patternMode === "helix" ? "bg-white text-black" : "bg-transparent hover:bg-white/10 text-white"
           } ${clickedButton === "helix" ? "scale-90" : "scale-100"}`}
           title="Helix view"
         >
           <svg
-            className="h-5 w-5"
+            className="h-4 w-4 sm:h-5 sm:w-5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -305,26 +304,26 @@ export default function PhotoSphere() {
         </button>
         <button
           onClick={() => handleButtonClick("wave", () => setPatternMode("wave"))}
-          className={`p-3 border-r border-white/20 transition-all duration-150 ${
+          className={`p-2 sm:p-3 border-r border-white/20 transition-all duration-150 ${
             patternMode === "wave" ? "bg-white text-black" : "bg-transparent hover:bg-white/10 text-white"
           } ${clickedButton === "wave" ? "scale-90" : "scale-100"}`}
           title="Wave view"
         >
-          <Waves className="h-5 w-5" />
+          <Waves className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
         <button
           onClick={() => handleButtonClick("cylinder", () => setPatternMode("cylinder"))}
-          className={`p-3 border-r border-white/20 transition-all duration-150 ${
+          className={`p-2 sm:p-3 border-r border-white/20 transition-all duration-150 ${
             patternMode === "cylinder" ? "bg-white text-black" : "bg-transparent hover:bg-white/10 text-white"
           } ${clickedButton === "cylinder" ? "scale-90" : "scale-100"}`}
           title="Cylinder view"
         >
-          <Cylinder className="h-5 w-5" />
+          <Cylinder className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
         <button
           onClick={() => handleButtonClick("rotate", () => setAutoRotate(!autoRotate))}
           disabled={patternMode === "gallery"}
-          className={`p-3 transition-all duration-150 ${
+          className={`p-2 sm:p-3 transition-all duration-150 ${
             patternMode === "gallery"
               ? "bg-white/5 text-white/30 cursor-not-allowed"
               : autoRotate
@@ -333,7 +332,7 @@ export default function PhotoSphere() {
           } ${clickedButton === "rotate" ? "scale-90" : "scale-100"}`}
           title={patternMode === "gallery" ? "Auto-rotation disabled in gallery view" : "Toggle auto-rotation"}
         >
-          <RotateCw className="h-5 w-5" />
+          <RotateCw className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
       </div>
     </div>
