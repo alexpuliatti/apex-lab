@@ -176,6 +176,8 @@ function GraphLines({ links, nodes, hoveredNodeId }: { links: any[], nodes: any[
     transparent: true,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
+    depthTest: false,
+    linewidth: 4,
     uniforms: {
       uTime: { value: 0 },
       uColor1: { value: new THREE.Color('#C2384D') },
@@ -209,6 +211,8 @@ function GraphLines({ links, nodes, hoveredNodeId }: { links: any[], nodes: any[
     transparent: true,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
+    depthTest: false,
+    linewidth: 6,
     uniforms: {
       uTime: { value: 0 },
       uColor: { value: new THREE.Color('#C2384D') },
@@ -321,7 +325,7 @@ function getSpringLength(linkType?: string) {
   }
 }
 
-function GraphScene({ autoRotate, restartKey, links, onSelectNode, onSelectImage, onDismiss }: { autoRotate: boolean, restartKey: number, links: any[], onSelectNode: (n: any) => void, onSelectImage: (imagePath: string) => void, onDismiss: () => void }) {
+function GraphScene({ autoRotate, restartKey, links, onSelectNode, onSelectImage, onDismiss, missedTrigger }: { autoRotate: boolean, restartKey: number, links: any[], onSelectNode: (n: any) => void, onSelectImage: (imagePath: string) => void, onDismiss: () => void, missedTrigger: number }) {
   const groupRef = useRef<THREE.Group>(null)
   
   const [physicsNodes] = useState(() => initialNodes.map(n => ({
@@ -343,6 +347,14 @@ function GraphScene({ autoRotate, restartKey, links, onSelectNode, onSelectImage
       rn.vel.set(0, 0, 0)
     })
   }, [physicsNodes])
+
+  useEffect(() => {
+    if (missedTrigger > 0) {
+      lockedRef.current = null
+      setLockedNodeId(null)
+      onDismiss()
+    }
+  }, [missedTrigger])
 
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
   const [lockedNodeId, setLockedNodeId] = useState<string | null>(null)
@@ -447,7 +459,7 @@ function GraphScene({ autoRotate, restartKey, links, onSelectNode, onSelectImage
   }, [activeNodeId, links])
 
   return (
-    <group ref={groupRef} onPointerMissed={handleUnlock}>
+    <group ref={groupRef}>
       <GraphLines links={links} nodes={physicsNodes} hoveredNodeId={activeNodeId} />
       {visibleNodes.map((node) => {
         const highlightState = !activeNodeId ? 'none' as const
@@ -473,6 +485,7 @@ export default function PhotoSphere() {
   const [selectedKeyword, setSelectedKeyword] = useState<any | null>(null)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [showHint, setShowHint] = useState(false)
+  const [missedTrigger, setMissedTrigger] = useState(0)
   const [zoomReady, setZoomReady] = useState(false)
 
   // HQ images for lightbox (originals ~1.7MB each)
@@ -539,7 +552,10 @@ export default function PhotoSphere() {
           filter: hasInteracted ? "blur(0px)" : "blur(18px)",
           transition: "filter 2.5s cubic-bezier(0.2, 0.8, 0.2, 1)"
         }}>
-          <Canvas camera={{ position: [0, 0, 55], fov: 60 }}>
+          <Canvas 
+            camera={{ position: [0, 0, 55], fov: 60 }}
+            onPointerMissed={() => setMissedTrigger(t => t + 1)}
+          >
             <ambientLight intensity={0.8} />
             <directionalLight position={[10, 10, 5]} intensity={1} />
             <directionalLight position={[-10, -10, -5]} intensity={0.5} />
@@ -552,6 +568,7 @@ export default function PhotoSphere() {
                 onSelectNode={(node) => setSelectedKeyword(node)}
                 onSelectImage={(path) => setSelectedImage(toHQ(path))}
                 onDismiss={() => { setSelectedKeyword(null); setSelectedImage(null); }}
+                missedTrigger={missedTrigger}
               />
             </Suspense>
             
