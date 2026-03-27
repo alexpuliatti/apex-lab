@@ -215,10 +215,10 @@ function GraphLines({ links, nodes, hoveredNodeId }: { links: any[], nodes: any[
       uniform vec3 uColor2;
       varying float vProgress;
       void main() {
-        float flow = fract(vProgress - uTime * 0.4);
-        float wave = sin(flow * 6.2831) * 0.5 + 0.5;
-        vec3 color = mix(uColor1, uColor2, wave * 0.7);
-        float alpha = 0.5 + wave * 0.3;
+        float flow = fract(vProgress - uTime * 0.15);
+        float wave = pow(sin(flow * 3.14159), 2.0);
+        vec3 color = mix(uColor1, uColor2, wave * 0.6);
+        float alpha = 0.4 + wave * 0.6;
         gl_FragColor = vec4(color, alpha);
       }
     `,
@@ -246,9 +246,9 @@ function GraphLines({ links, nodes, hoveredNodeId }: { links: any[], nodes: any[
       uniform vec3 uColor;
       varying float vProgress;
       void main() {
-        float flow = fract(vProgress - uTime * 0.4);
-        float wave = sin(flow * 6.2831) * 0.5 + 0.5;
-        gl_FragColor = vec4(uColor, 0.15 + wave * 0.1);
+        float flow = fract(vProgress - uTime * 0.15);
+        float wave = pow(sin(flow * 3.14159), 2.0);
+        gl_FragColor = vec4(uColor, 0.12 + wave * 0.15);
       }
     `,
   }), [])
@@ -341,7 +341,7 @@ function getSpringLength(linkType?: string) {
   }
 }
 
-function GraphScene({ autoRotate, restartKey, filterMode, links, onSelectNode, onSelectImage, onDismiss }: { autoRotate: boolean, restartKey: number, filterMode: 'all' | 'photo' | 'text', links: any[], onSelectNode: (n: any) => void, onSelectImage: (imagePath: string) => void, onDismiss: () => void }) {
+function GraphScene({ autoRotate, restartKey, links, onSelectNode, onSelectImage, onDismiss }: { autoRotate: boolean, restartKey: number, links: any[], onSelectNode: (n: any) => void, onSelectImage: (imagePath: string) => void, onDismiss: () => void }) {
   const groupRef = useRef<THREE.Group>(null)
   
   const [physicsNodes] = useState(() => initialNodes.map(n => ({
@@ -362,7 +362,7 @@ function GraphScene({ autoRotate, restartKey, filterMode, links, onSelectNode, o
       rn.pos.set((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100)
       rn.vel.set(0, 0, 0)
     })
-  }, [physicsNodes, filterMode])
+  }, [physicsNodes])
 
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
   const [lockedNodeId, setLockedNodeId] = useState<string | null>(null)
@@ -452,12 +452,7 @@ function GraphScene({ autoRotate, restartKey, filterMode, links, onSelectNode, o
     }
   })
 
-  const visibleNodes = useMemo(() => {
-    if (filterMode === 'all') return physicsNodes
-    if (filterMode === 'photo') return physicsNodes.filter(n => n.type === 'image')
-    if (filterMode === 'text') return physicsNodes.filter(n => n.type !== 'image')
-    return physicsNodes
-  }, [physicsNodes, filterMode])
+  const visibleNodes = physicsNodes
 
   // Compute connected node IDs for hover/lock highlighting
   const connectedIds = useMemo(() => {
@@ -495,7 +490,6 @@ export default function PhotoSphere() {
   const [hasInteracted, setHasInteracted] = useState(false)
   const [clickedButton, setClickedButton] = useState<string | null>(null)
   const [simulationRestartKey, setSimulationRestartKey] = useState(0)
-  const [filterMode, setFilterMode] = useState<'all' | 'photo' | 'text'>('all')
   const [selectedKeyword, setSelectedKeyword] = useState<any | null>(null)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [showHint, setShowHint] = useState(false)
@@ -533,26 +527,7 @@ export default function PhotoSphere() {
   }
 
   // Generate links based on filter
-  const visibleLinks = useMemo(() => {
-    if (filterMode === 'all') return initialLinks
-    
-    if (filterMode === 'text') {
-      // Show all non-image nodes and their links
-      const textIds = new Set(initialNodes.filter(n => n.type !== 'image').map(n => n.id))
-      return initialLinks.filter(l => textIds.has(l.source) && textIds.has(l.target))
-    }
-    
-    if (filterMode === 'photo') {
-      const images = initialNodes.filter(n => n.type === 'image').map(n => n.id)
-      const newLinks: typeof initialLinks = []
-      for (let i = 0; i < images.length; i++) {
-        newLinks.push({ source: images[i], target: images[(i+1)%images.length], type: 'visual' })
-        if (i % 2 === 0) newLinks.push({ source: images[i], target: images[(i+4)%images.length], type: 'visual' })
-      }
-      return newLinks
-    }
-    return initialLinks
-  }, [filterMode])
+  const visibleLinks = initialLinks
 
   return (
     <>
@@ -593,7 +568,6 @@ export default function PhotoSphere() {
               <GraphScene 
                 autoRotate={autoRotate} 
                 restartKey={simulationRestartKey} 
-                filterMode={filterMode} 
                 links={visibleLinks}
                 onSelectNode={(node) => setSelectedKeyword(node)}
                 onSelectImage={(path) => setSelectedImage(toHQ(path))}
@@ -645,43 +619,6 @@ export default function PhotoSphere() {
             Scroll to Explore
           </span>
           <ChevronDown className="w-5 h-5 text-white/60 animate-bounce" strokeWidth={1.5} />
-        </div>
-
-        {/* Bottom Navbar – frosted liquid glass pill */}
-        <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 md:bottom-8 z-20 pointer-events-auto transition-opacity duration-1000 ${mounted && hasInteracted ? "opacity-100" : "opacity-0 invisible"}`}>
-          <div
-            className="flex items-center gap-0 rounded-full overflow-hidden"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              backdropFilter: 'blur(24px) saturate(1.4)',
-              WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.4)',
-              padding: '4px',
-            }}
-          >
-            <button
-              onClick={() => setFilterMode('all')}
-              className={`px-6 py-2.5 text-xs tracking-[0.15em] uppercase font-medium rounded-full transition-all duration-300 ${filterMode === 'all' ? 'bg-white/15 text-white shadow-[0_0_12px_rgba(255,255,255,0.1)]' : 'text-white/40 hover:text-white/70'}`}
-              style={{ fontFamily: 'Geist, sans-serif' }}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setFilterMode('photo')}
-              className={`px-6 py-2.5 text-xs tracking-[0.15em] uppercase font-medium rounded-full transition-all duration-300 ${filterMode === 'photo' ? 'bg-white/15 text-white shadow-[0_0_12px_rgba(255,255,255,0.1)]' : 'text-white/40 hover:text-white/70'}`}
-              style={{ fontFamily: 'Geist, sans-serif' }}
-            >
-              Photography
-            </button>
-            <button
-              onClick={() => setFilterMode('text')}
-              className={`px-6 py-2.5 text-xs tracking-[0.15em] uppercase font-medium rounded-full transition-all duration-300 ${filterMode === 'text' ? 'bg-white/15 text-white shadow-[0_0_12px_rgba(255,255,255,0.1)]' : 'text-white/40 hover:text-white/70'}`}
-              style={{ fontFamily: 'Geist, sans-serif' }}
-            >
-              Text
-            </button>
-          </div>
         </div>
 
 
