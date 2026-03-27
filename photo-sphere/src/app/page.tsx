@@ -46,9 +46,19 @@ function ImageNode({ node, onClick, highlightState }: { node: any, onClick: () =
   return (
     <mesh 
       ref={meshRef}
-      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
-      onPointerOut={(e) => { e.stopPropagation(); setHovered(false); document.body.style.cursor = 'auto'; }}
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      raycast={highlightState === 'dimmed' ? () => null : undefined}
+      onPointerOver={(e) => { 
+        if (highlightState === 'dimmed') return;
+        e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; 
+      }}
+      onPointerOut={(e) => { 
+        if (highlightState === 'dimmed') return;
+        e.stopPropagation(); setHovered(false); document.body.style.cursor = 'auto'; 
+      }}
+      onClick={(e) => { 
+        if (highlightState === 'dimmed') return;
+        e.stopPropagation(); onClick(); 
+      }}
     >
       <planeGeometry args={[3.5, 4.2]} />
       <meshStandardMaterial map={texture} side={THREE.DoubleSide} transparent opacity={0.8} />
@@ -145,9 +155,19 @@ function TextNode({ node, onClick, onHover, highlightState }: { node: any, onCli
           textAlign="center"
           maxWidth={style.maxWidth}
           fillOpacity={1}
-          onClick={(e) => { e.stopPropagation(); onClick(); }}
-          onPointerOver={(e) => { e.stopPropagation(); setHovered(true); onHover(node.id); document.body.style.cursor = 'pointer'; }}
-          onPointerOut={(e) => { e.stopPropagation(); setHovered(false); onHover(null); document.body.style.cursor = 'auto'; }}
+          raycast={highlightState === 'dimmed' ? () => null : undefined}
+          onClick={(e) => { 
+            if (highlightState === 'dimmed') return;
+            e.stopPropagation(); onClick(); 
+          }}
+          onPointerOver={(e) => { 
+            if (highlightState === 'dimmed') return;
+            e.stopPropagation(); setHovered(true); onHover(node.id); document.body.style.cursor = 'pointer'; 
+          }}
+          onPointerOut={(e) => { 
+            if (highlightState === 'dimmed') return;
+            e.stopPropagation(); setHovered(false); onHover(null); document.body.style.cursor = 'auto'; 
+          }}
         >
           {node.label}
         </Text>
