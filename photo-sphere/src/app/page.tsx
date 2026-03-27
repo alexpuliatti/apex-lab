@@ -37,7 +37,7 @@ function ImageNode({ node, onClick, highlightState }: { node: any, onClick: () =
       }
       
       // Smooth opacity lerp
-      currentOpacity.current = THREE.MathUtils.lerp(currentOpacity.current, targetOpacity, 0.08)
+      currentOpacity.current = THREE.MathUtils.lerp(currentOpacity.current, targetOpacity, 0.04)
       const mat = meshRef.current.material as THREE.MeshStandardMaterial
       if (mat) mat.opacity = currentOpacity.current
     }
@@ -121,8 +121,8 @@ function TextNode({ node, onClick, onHover, highlightState }: { node: any, onCli
   useFrame(() => {
     if (ref.current) {
       ref.current.position.set(node.pos.x, node.pos.y, node.pos.z)
-      currentScale.current = THREE.MathUtils.lerp(currentScale.current, targetScale, 0.08)
-      currentOpacity.current = THREE.MathUtils.lerp(currentOpacity.current, targetOpacity, 0.08)
+      currentScale.current = THREE.MathUtils.lerp(currentScale.current, targetScale, 0.04)
+      currentOpacity.current = THREE.MathUtils.lerp(currentOpacity.current, targetOpacity, 0.04)
       ref.current.scale.setScalar(currentScale.current)
       if (textRef.current) {
         textRef.current.fillOpacity = currentOpacity.current
@@ -180,6 +180,7 @@ function GraphLines({ links, nodes, hoveredNodeId }: { links: any[], nodes: any[
     linewidth: 4,
     uniforms: {
       uTime: { value: 0 },
+      uFade: { value: 0 },
       uColor1: { value: new THREE.Color('#C2384D') },
       uColor2: { value: new THREE.Color('#ffffff') },
     },
@@ -193,6 +194,7 @@ function GraphLines({ links, nodes, hoveredNodeId }: { links: any[], nodes: any[
     `,
     fragmentShader: `
       uniform float uTime;
+      uniform float uFade;
       uniform vec3 uColor1;
       uniform vec3 uColor2;
       varying float vProgress;
@@ -200,7 +202,7 @@ function GraphLines({ links, nodes, hoveredNodeId }: { links: any[], nodes: any[
         float flow = fract(vProgress - uTime * 0.15);
         float wave = pow(sin(flow * 3.14159), 2.0);
         vec3 color = mix(uColor1, uColor2, wave * 0.6);
-        float alpha = 0.4 + wave * 0.6;
+        float alpha = (0.4 + wave * 0.6) * uFade;
         gl_FragColor = vec4(color, alpha);
       }
     `,
@@ -215,6 +217,7 @@ function GraphLines({ links, nodes, hoveredNodeId }: { links: any[], nodes: any[
     linewidth: 6,
     uniforms: {
       uTime: { value: 0 },
+      uFade: { value: 0 },
       uColor: { value: new THREE.Color('#C2384D') },
     },
     vertexShader: `
@@ -227,20 +230,38 @@ function GraphLines({ links, nodes, hoveredNodeId }: { links: any[], nodes: any[
     `,
     fragmentShader: `
       uniform float uTime;
+      uniform float uFade;
       uniform vec3 uColor;
       varying float vProgress;
       void main() {
         float flow = fract(vProgress - uTime * 0.15);
         float wave = pow(sin(flow * 3.14159), 2.0);
-        gl_FragColor = vec4(uColor, 0.12 + wave * 0.15);
+        gl_FragColor = vec4(uColor, (0.12 + wave * 0.15) * uFade);
       }
     `,
   }), [])
+
+  const activeIdRef = useRef<string | null>(null)
+  if (hoveredNodeId) activeIdRef.current = hoveredNodeId
+  const activeId = hoveredNodeId || activeIdRef.current
+
+  const fadeRef = useRef(0)
+  const baseMaterialRef = useRef<THREE.LineBasicMaterial>(null)
 
   useFrame((state) => {
     const time = state.clock.elapsedTime
     highlightShader.uniforms.uTime.value = time
     glowShader.uniforms.uTime.value = time
+
+    const fadeTarget = hoveredNodeId ? 1 : 0
+    fadeRef.current = THREE.MathUtils.lerp(fadeRef.current, fadeTarget, 0.04)
+
+    highlightShader.uniforms.uFade.value = fadeRef.current
+    glowShader.uniforms.uFade.value = fadeRef.current
+    
+    if (baseMaterialRef.current) {
+      baseMaterialRef.current.opacity = THREE.MathUtils.lerp(0.4, 0.1, fadeRef.current)
+    }
 
     let i = 0
     let hi = 0
@@ -255,7 +276,7 @@ function GraphLines({ links, nodes, hoveredNodeId }: { links: any[], nodes: any[
         positions[i++] = sx; positions[i++] = sy; positions[i++] = sz
         positions[i++] = tx; positions[i++] = ty; positions[i++] = tz
         
-        if (hoveredNodeId && (link.source === hoveredNodeId || link.target === hoveredNodeId)) {
+        if (activeId && (link.source === activeId || link.target === activeId)) {
           highlightPositions[hi++] = sx; highlightPositions[hi++] = sy; highlightPositions[hi++] = sz
           highlightPositions[hi++] = tx; highlightPositions[hi++] = ty; highlightPositions[hi++] = tz
           highlightUvs[ui++] = 0  // start vertex
@@ -291,24 +312,19 @@ function GraphLines({ links, nodes, hoveredNodeId }: { links: any[], nodes: any[
         </bufferGeometry>
         <lineBasicMaterial color="#C2384D" transparent opacity={hoveredNodeId ? 0.1 : 0.4} />
       </lineSegments>
-      {/* Glow pass (behind) */}
-      {hoveredNodeId && (
-        <lineSegments material={glowShader}>
-          <bufferGeometry ref={glowGeometryRef}>
-            <bufferAttribute attach="attributes-position" args={[highlightPositions.slice(), 3]} />
-            <bufferAttribute attach="attributes-aProgress" args={[highlightUvs.slice(), 1]} />
-          </bufferGeometry>
-        </lineSegments>
-      )}
-      {/* Highlighted links with flowing gradient */}
-      {hoveredNodeId && (
-        <lineSegments material={highlightShader}>
-          <bufferGeometry ref={highlightGeometryRef}>
-            <bufferAttribute attach="attributes-position" args={[highlightPositions, 3]} />
-            <bufferAttribute attach="attributes-aProgress" args={[highlightUvs, 1]} />
-          </bufferGeometry>
-        </lineSegments>
-      )}
+      <lineSegments material={glowShader}>
+        <bufferGeometry ref={glowGeometryRef}>
+          <bufferAttribute attach="attributes-position" args={[highlightPositions.slice(), 3]} />
+          <bufferAttribute attach="attributes-aProgress" args={[highlightUvs.slice(), 1]} />
+        </bufferGeometry>
+      </lineSegments>
+      {/* Intense core pass */}
+      <lineSegments material={highlightShader}>
+        <bufferGeometry ref={highlightGeometryRef}>
+          <bufferAttribute attach="attributes-position" args={[highlightPositions, 3]} />
+          <bufferAttribute attach="attributes-aProgress" args={[highlightUvs, 1]} />
+        </bufferGeometry>
+      </lineSegments>
     </group>
   )
 }
