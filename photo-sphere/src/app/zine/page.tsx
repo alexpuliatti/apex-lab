@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import KnowledgeGraph from '../components/KnowledgeGraph'
+import StairScene from '../../components/StairScene'
 
-export default function Page() {
+export default function ZinePage() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
     setMounted(true)
@@ -13,7 +13,7 @@ export default function Page() {
 
   return (
     <main className="h-[100dvh] w-full bg-black overflow-hidden">
-      <KnowledgeGraph mounted={mounted} />
+      <StairScene />
     </main>
   )
 }
