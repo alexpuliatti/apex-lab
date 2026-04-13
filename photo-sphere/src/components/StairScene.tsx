@@ -243,6 +243,83 @@ function ScrollFadeSection({ children, delayIndex = 0 }: { children: React.React
   )
 }
 
+function ChapterCoverGraphic({ id, themeColor }: { id: string, themeColor: string }) {
+  return (
+    <>
+      <style>{`
+        @keyframes cxFlow {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(-10%); }
+        }
+        @keyframes cxPulseSun {
+          0% { transform: scale(0.3); opacity: 0; }
+          40% { opacity: 0.6; }
+          100% { transform: scale(1.6); opacity: 0; }
+        }
+        @keyframes cxSpeedLine {
+          from { stroke-dashoffset: 100; }
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes cxBreathe {
+          0%, 100% { transform: scaleY(1); }
+          50% { transform: scaleY(1.4); }
+        }
+        @keyframes cxRotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      {id === '01' && (
+        <svg width="100%" height="40%" className="absolute inset-x-0 top-[20%] pointer-events-none stroke-white" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <g style={{ animation: 'cxFlow 14s ease-in-out infinite alternate' }}>
+            <path d="M-20,50 Q25,20 50,50 T120,50" fill="none" strokeWidth="1" className="opacity-20" />
+            <path d="M-20,60 Q30,10 60,60 T120,60" fill="none" strokeWidth="0.5" stroke={themeColor} className="opacity-40" />
+          </g>
+        </svg>
+      )}
+
+      {id === '02' && (
+        <svg width="100%" height="50%" className="absolute inset-x-0 top-[20%] pointer-events-none stroke-white overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+          {/* The flatline of cosmic indifference */}
+          <path d="M-10,70 L110,70" fill="none" strokeWidth="1" className="opacity-20" />
+          {/* The radiating warmth of personal meaning */}
+          <path d="M50,30 C 75,30 75,70 50,70 C 25,70 25,30 50,30" fill="none" strokeWidth="1" className="opacity-10" />
+          <path d="M50,30 C 75,30 75,70 50,70 C 25,70 25,30 50,30" fill="none" strokeWidth="0.5" stroke={themeColor} style={{ animation: 'cxPulseSun 6s ease-out infinite', transformOrigin: '50% 50%' }} />
+          <path d="M50,30 C 75,30 75,70 50,70 C 25,70 25,30 50,30" fill="none" strokeWidth="0.5" stroke={themeColor} style={{ animation: 'cxPulseSun 6s ease-out infinite 3s', transformOrigin: '50% 50%' }} />
+        </svg>
+      )}
+
+      {id === '03' && (
+        <svg width="100%" height="40%" className="absolute inset-x-0 top-[20%] pointer-events-none stroke-white" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <path d="M-10,10 L110,60" fill="none" strokeWidth="0.5" className="opacity-10" strokeDasharray="10 10" style={{ animation: 'cxSpeedLine 1.5s linear infinite' }} />
+          <path d="M-10,30 L110,70" fill="none" strokeWidth="1" stroke={themeColor} className="opacity-30" strokeDasharray="30 20" style={{ animation: 'cxSpeedLine 0.6s linear infinite reverse' }} />
+          <path d="M-10,50 L110,80" fill="none" strokeWidth="1.5" className="opacity-20" strokeDasharray="15 5" style={{ animation: 'cxSpeedLine 0.9s linear infinite' }} />
+          <path d="M-10,70 L110,90" fill="none" strokeWidth="2" stroke={themeColor} className="opacity-40" strokeDasharray="50 30" style={{ animation: 'cxSpeedLine 0.4s linear infinite' }} />
+        </svg>
+      )}
+
+      {id === '04' && (
+        <svg width="100%" height="50%" className="absolute inset-x-0 top-[20%] pointer-events-none stroke-white" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <path d="M20,0 L20,100 M40,0 L40,100 M60,0 L60,100 M80,0 L80,100" fill="none" strokeWidth="0.2" className="opacity-10" />
+          <path d="M0,20 L100,20 M0,40 L100,40 M0,60 L100,60 M0,80 L100,80" fill="none" strokeWidth="0.2" className="opacity-10" />
+          <path d="M0,80 C 30,20 70,80 100,20" fill="none" strokeWidth="1.5" stroke={themeColor} className="opacity-40" style={{ animation: 'cxBreathe 6s ease-in-out infinite', transformOrigin: '50% 50%' }} />
+        </svg>
+      )}
+
+      {id === '05' && (
+        <svg width="100%" height="40%" className="absolute inset-x-0 top-[20%] pointer-events-none stroke-white" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <g style={{ animation: 'cxRotate 30s linear infinite', transformOrigin: '50% 50%' }}>
+            <path d="M-50,50 C -20,-20 120,120 150,50" fill="none" strokeWidth="1" className="opacity-20" />
+            <path d="M-50,50 C -20,120 120,-20 150,50" fill="none" strokeWidth="0.5" stroke={themeColor} className="opacity-40" />
+          </g>
+          <circle cx="50" cy="50" r="15" fill="none" strokeWidth="0.5" className="opacity-20" style={{ animation: 'cxRotate 15s linear infinite reverse', transformOrigin: '50% 50%' }} strokeDasharray="4 6" />
+        </svg>
+      )}
+    </>
+  )
+}
+
 function ChapterDetail({ chapter, onBack, themeColor, isClosing }: { chapter: typeof CHAPTERS[0]; onBack: () => void, themeColor: string, isClosing?: boolean }) {
   const [visible, setVisible] = useState(false)
   const paragraphs = chapter.summary.split('\n\n')
@@ -286,24 +363,46 @@ function ChapterDetail({ chapter, onBack, themeColor, isClosing }: { chapter: ty
         </button>
         
         <div className="flex-1 flex flex-col items-center justify-center pt-8">
-          {/* Greyscale Illustration Placeholder */}
+          {/* Physical Book Cover Silhouette */}
           <div 
-            className="w-full max-w-sm aspect-[3/4] bg-white/5 backdrop-blur-sm border border-white/10 flex flex-col p-8 justify-end relative overflow-hidden"
+            className="w-full max-w-sm aspect-[3/4] bg-[#0c0c0c] flex flex-col p-8 justify-end relative overflow-hidden rounded-r-xl rounded-l-[4px]"
             style={{
+              boxShadow: '20px 20px 40px rgba(0,0,0,0.8), inset 1px 1px 0px rgba(255,255,255,0.05), inset -1px -1px 0px rgba(0,0,0,0.3)',
               opacity: visible && !isClosing ? 1 : 0,
               transform: visible && !isClosing ? 'translateY(0) scale(1)' : 'translateY(10px) scale(0.98)',
               transition: 'opacity 700ms cubic-bezier(0.23, 1, 0.32, 1) 150ms, transform 700ms cubic-bezier(0.23, 1, 0.32, 1) 150ms'
             }}
           >
-            <div className="absolute top-8 right-8 font-mono text-xs font-bold text-white/30">VOL.01</div>
-            <div className="text-[3rem] font-bold text-white/20" style={{ fontFamily: 'ArrowFont, serif', lineHeight: 0.9 }}>
-              {chapter.titleFlat}
+            {/* Base Book Material / Texture Layer */}
+            <div className="absolute inset-0 bg-[#0a0a0a] z-0" />
+
+            {/* Dynamic abstract cover graphic */}
+            <div className="absolute inset-0 z-0 opacity-80 mix-blend-screen">
+              <ChapterCoverGraphic id={chapter.id} themeColor={themeColor} />
             </div>
-            {/* Minimal line details */}
-            <svg width="100%" height="40%" className="absolute inset-x-0 top-[20%] opacity-20 pointer-events-none stroke-white" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M0,50 Q25,20 50,50 T100,50" fill="none" strokeWidth="1" />
-              <path d="M0,60 Q30,10 60,60 T100,60" fill="none" strokeWidth="0.5" />
-            </svg>
+
+            {/* Book Spine Crease / Hinge (Left side) */}
+            <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-black/90 via-black/20 to-transparent pointer-events-none z-10" />
+            <div className="absolute inset-y-0 left-[20px] w-[2px] bg-gradient-to-b from-white/0 via-white/5 to-white/0 pointer-events-none z-10 mix-blend-overlay" />
+            
+            {/* Gentle ambient light reflection sweeping across the cover */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/[0.03] to-white/0 pointer-events-none z-10" />
+
+            {/* Front Cover Content Area */}
+            <div className="relative z-20 w-full h-full flex flex-col justify-between">
+              <div className="self-end font-mono text-xs font-bold text-white/30 tracking-widest mt-2">{chapter.id === '01' ? 'PREFACE' : `VOL.${chapter.id}`}</div>
+              
+              <div 
+                className="text-[3rem] font-bold text-white/30 tracking-tighter" 
+                style={{ 
+                  fontFamily: 'ArrowFont, serif', 
+                  lineHeight: 0.9,
+                  textShadow: '0px 2px 10px rgba(0,0,0,0.5)' 
+                }}
+              >
+                {chapter.titleFlat}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -321,12 +420,9 @@ function ChapterDetail({ chapter, onBack, themeColor, isClosing }: { chapter: ty
           <div className="font-mono text-xs font-bold tracking-widest uppercase mb-6 opacity-50" style={{ color: themeColor }}>
             Chapter {chapter.id} — {chapter.subtitle}
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tighter mb-4 leading-[1.05]" style={{ fontFamily: 'ArrowFont, serif' }}>
+          <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tighter mb-12 leading-[1.05]" style={{ fontFamily: 'ArrowFont, serif' }}>
             {chapter.titleFlat}
           </h1>
-          <div className="font-mono text-sm tracking-wide opacity-50 mb-12">
-            By {chapter.author}
-          </div>
         </div>
 
         {/* Synopsis Paragraphs Cascade */}
