@@ -340,7 +340,7 @@ function ChapterDetail({ chapter, onBack, themeColor, isClosing }: { chapter: ty
 
   return (
     <div 
-      className="absolute inset-0 z-30 flex flex-col md:flex-row overflow-hidden pointer-events-auto bg-black text-white"
+      className="absolute inset-0 z-[10000] flex flex-col md:flex-row overflow-hidden pointer-events-auto bg-black text-white"
       style={{
         opacity: (!visible || isClosing) ? 0 : 1,
         transition: 'opacity 300ms ease-out',
@@ -519,21 +519,7 @@ export default function StairScene() {
         }
       `}</style>
       
-      {/* HTML Overlay Title */}
-      <div 
-        className="absolute top-20 right-12 z-10 pointer-events-none text-right"
-        style={{
-          opacity: selectedChapter !== null ? 0 : 1,
-          transition: 'opacity 0.3s ease',
-        }}
-      >
-        <h2 className="text-3xl md:text-4xl tracking-tighter text-white" style={{ fontFamily: 'ArrowFont, serif' }}>
-          the apex zine
-        </h2>
-        <p className="font-mono text-xs tracking-widest uppercase mt-2 opacity-40 text-white">
-          issue 01, spring 2026
-        </p>
-      </div>
+
 
       {/* 3D Canvas Layer — fades out or completely unmounts/hides */}
       <div 

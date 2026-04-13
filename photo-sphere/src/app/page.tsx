@@ -534,6 +534,11 @@ export default function PhotoSphere() {
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 100)
     const hintTimer = setTimeout(() => setShowHint(true), 2500)
+    
+    if (typeof window !== 'undefined' && window.location.hash === '#graph') {
+      setHasInteracted(true)
+    }
+
     return () => {
       clearTimeout(timer)
       clearTimeout(hintTimer)
