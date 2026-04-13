@@ -16,7 +16,7 @@ export default function Navigation() {
       const target = e.target as HTMLElement | Document;
       let currentScroll = 0;
       
-      if (target === document || target === window) {
+      if (target === document || (target as unknown) === window) {
         currentScroll = window.scrollY;
       } else if (target instanceof HTMLElement) {
         if (target.clientHeight > 200) {
