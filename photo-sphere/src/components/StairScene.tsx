@@ -340,7 +340,7 @@ function ChapterDetail({ chapter, onBack, themeColor, isClosing }: { chapter: ty
 
   return (
     <div 
-      className="absolute inset-0 z-[10000] flex flex-col md:flex-row overflow-hidden pointer-events-auto bg-black text-white"
+      className="absolute inset-0 z-[10000] flex flex-col md:flex-row overflow-y-auto md:overflow-hidden pointer-events-auto bg-black text-white custom-scrollbar"
       style={{
         opacity: (!visible || isClosing) ? 0 : 1,
         transition: 'opacity 300ms ease-out',
@@ -348,7 +348,7 @@ function ChapterDetail({ chapter, onBack, themeColor, isClosing }: { chapter: ty
     >
       {/* Left side: Fixed Cover Art */}
       <div 
-        className="w-full md:w-[45%] h-[40vh] md:h-screen sticky top-0 flex flex-col justify-between p-8 md:p-16 border-b md:border-b-0 md:border-r border-white/10"
+        className="w-full md:w-[45%] h-auto min-h-screen md:min-h-0 md:h-screen md:sticky md:top-0 flex flex-col justify-between p-6 pt-12 md:p-16 border-b md:border-b-0 md:border-r border-white/10 shrink-0"
         style={{
           opacity: visible && !isClosing ? 1 : 0,
           transition: 'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1)',
@@ -362,7 +362,7 @@ function ChapterDetail({ chapter, onBack, themeColor, isClosing }: { chapter: ty
           ← Back to chapters
         </button>
         
-        <div className="flex-1 flex flex-col items-center justify-center pt-8">
+        <div className="flex-1 flex flex-col items-center justify-center py-12 md:py-0">
           {/* Physical Book Cover Silhouette */}
           <div 
             className="w-full max-w-sm aspect-[3/4] bg-[#0c0c0c] flex flex-col p-8 justify-end relative overflow-hidden rounded-r-xl rounded-l-[4px]"
@@ -408,7 +408,7 @@ function ChapterDetail({ chapter, onBack, themeColor, isClosing }: { chapter: ty
       </div>
 
       {/* Right side: Scrollable Article */}
-      <div className="w-full md:w-[55%] h-[60vh] md:h-screen overflow-y-auto overflow-x-hidden relative scroll-smooth p-8 md:p-24 lg:p-32 custom-scrollbar">
+      <div className="w-full md:w-[55%] h-auto md:h-screen md:overflow-y-auto overflow-x-hidden relative scroll-smooth p-6 pb-32 md:p-24 lg:p-32 custom-scrollbar shrink-0">
         {/* Title Cascade */}
         <div 
           style={{
