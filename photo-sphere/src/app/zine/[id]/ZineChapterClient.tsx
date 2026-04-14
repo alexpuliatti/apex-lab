@@ -57,7 +57,7 @@ export default function ZineChapterClient({ chapterId }: { chapterId: string }) 
         
         {/* Left side: Fixed Cover Art */}
         <div 
-          className="w-full md:w-[45%] h-auto min-h-[60vh] md:h-[100dvh] flex flex-col justify-between p-6 pt-12 md:p-16 border-b md:border-b-0 md:border-r border-white/10 shrink-0 pointer-events-auto"
+          className="w-full md:w-[45%] h-auto min-h-[60vh] md:h-[100dvh] flex flex-col justify-between p-6 pt-12 md:p-16 border-b md:border-b-0 md:border-r border-white/10 shrink-0 pointer-events-auto z-[10001]"
           style={{
             opacity: visible && !isClosing ? 1 : 0,
             transition: 'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1)',
@@ -109,7 +109,7 @@ export default function ZineChapterClient({ chapterId }: { chapterId: string }) 
         </div>
 
         {/* Right side: Scrollable Article */}
-        <SmoothScroll className="w-full md:w-[55%] h-auto md:h-[100dvh] overflow-y-auto overflow-x-hidden relative scroll-smooth p-6 pb-32 md:p-24 lg:p-32 custom-scrollbar shrink-0 pointer-events-auto text-white">
+        <SmoothScroll className="w-full md:w-[55%] h-auto md:h-[100dvh] overflow-y-auto overflow-x-hidden relative scroll-smooth p-6 pb-32 md:p-24 lg:p-32 custom-scrollbar shrink-0 pointer-events-auto text-white z-[10001]">
           {/* Title Cascade */}
           <div 
             style={{
