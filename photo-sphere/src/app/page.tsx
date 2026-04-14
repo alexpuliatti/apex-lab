@@ -3,7 +3,10 @@
 import { useRef, useState, useEffect, Suspense, useMemo } from "react"
 import { Canvas, useFrame, useLoader } from "@react-three/fiber"
 import { OrbitControls, Billboard, Text, Line } from "@react-three/drei"
-import { RotateCw, RefreshCcw, ChevronDown } from "lucide-react"
+// Inline chevron SVG — replaces lucide-react dependency
+const ChevronDown = ({ className = "", strokeWidth = 2 }: { className?: string, strokeWidth?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 9 6 6 6-6"/></svg>
+)
 import * as THREE from "three"
 
 import Navigation from '@/components/Navigation'
@@ -66,17 +69,10 @@ function ImageNode({ node, onClick, highlightState }: { node: any, onClick: () =
   )
 }
 
-function CameraAnimator({ hasInteracted, onFinished }: { hasInteracted: boolean, onFinished: () => void }) {
-  const finished = useRef(false)
+function CameraAnimator({ hasInteracted }: { hasInteracted: boolean }) {
   useFrame((state) => {
     if (!hasInteracted) {
       state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, 160, 0.04)
-    } else if (!finished.current) {
-      state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, 55, 0.04)
-      if (Math.abs(state.camera.position.z - 55) < 0.5) {
-        finished.current = true
-        onFinished()
-      }
     }
   })
   return null
@@ -565,7 +561,6 @@ export default function PhotoSphere() {
   const [showHint, setShowHint] = useState(false)
   const [missedTrigger, setMissedTrigger] = useState(0)
   const [zoomReady, setZoomReady] = useState(false)
-  const [controlsEnabled, setControlsEnabled] = useState(false)
 
   // HQ images for lightbox (originals ~1.7MB each)
   const allImages = useMemo(() => 
@@ -577,7 +572,7 @@ export default function PhotoSphere() {
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 100)
-    const hintTimer = setTimeout(() => setShowHint(true), 2500)
+    const hintTimer = setTimeout(() => setShowHint(true), 300)
     
     if (typeof window !== 'undefined' && window.location.hash === '#graph') {
       setHasInteracted(true)
@@ -609,21 +604,7 @@ export default function PhotoSphere() {
   return (
     <>
       <Navigation />
-      {/* Global font injection */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @font-face {
-          font-family: 'Geist';
-          src: url('/fonts/Geist-Regular.ttf') format('truetype');
-          font-weight: normal;
-          font-style: normal;
-        }
-        @font-face {
-          font-family: 'ArrowFont';
-          src: url('/fonts/Arrow-Font-Regular.otf') format('opentype');
-          font-weight: normal;
-          font-style: normal;
-        }
-      `}} />
+      {/* Global font injection — moved to globals.css */}
 
       <div 
         className="relative h-[100dvh] w-full bg-black overflow-hidden select-none touch-none"
@@ -638,13 +619,13 @@ export default function PhotoSphere() {
           transition: "filter 2.5s cubic-bezier(0.2, 0.8, 0.2, 1)"
         }}>
           <Canvas 
-            camera={{ position: [0, 0, 160], fov: 60 }}
+            camera={{ position: [0, 0, hasInteracted ? 55 : 160], fov: 60 }}
             dpr={[1, 1.5]}
             gl={{ antialias: true, powerPreference: 'high-performance' }}
             onPointerMissed={() => setMissedTrigger(t => t + 1)}
-            style={{ pointerEvents: hasInteracted ? 'auto' : 'none' }}
+            style={{ pointerEvents: 'auto' }}
           >
-            <CameraAnimator hasInteracted={hasInteracted} onFinished={() => setControlsEnabled(true)} />
+            <CameraAnimator hasInteracted={hasInteracted} />
             <ambientLight intensity={0.8} />
             <directionalLight position={[10, 10, 5]} intensity={1} />
             <directionalLight position={[-10, -10, -5]} intensity={0.5} />
@@ -662,9 +643,9 @@ export default function PhotoSphere() {
             </Suspense>
             
             <OrbitControls 
-               enabled={controlsEnabled}
-               enableZoom={controlsEnabled && zoomReady} 
-               enablePan={controlsEnabled} 
+               enabled={true}
+               enableZoom={zoomReady} 
+               enablePan={true} 
                autoRotate={false} 
                enableDamping={true} 
                dampingFactor={0.05} 
@@ -675,27 +656,20 @@ export default function PhotoSphere() {
         </div>
 
         <div 
-          className={`fixed z-[10000] pointer-events-none flex items-center justify-center ${hasInteracted ? 'top-6 left-6 md:top-8 md:left-12 h-10' : 'top-1/2 left-1/2'}`}
+          className="fixed z-[10000] pointer-events-none flex items-center justify-center top-6 left-6 md:top-8 md:left-12 h-10"
           style={{
-            transform: hasInteracted 
-              ? 'translate(0, 0) scale(1)' 
-              : `translate(-50%, -50%) scale(${mounted ? 1.25 : 1})`,
-            opacity: hasInteracted ? 0.6 : (mounted ? 1 : 0),
-            transition: 'all 2s cubic-bezier(0.16, 1, 0.3, 1)',
-            willChange: 'transform, opacity, top, left',
+            opacity: mounted ? 0.6 : 0,
+            transition: 'opacity 1s ease',
           }}
         >
           <img 
             src="/materials/apex_logo.png" 
             alt="Apex Logo" 
             style={{
-              width: hasInteracted ? '80px' : 'min(80vw, 800px)',
+              width: '80px',
               height: 'auto',
               objectFit: 'contain' as const,
               filter: 'drop-shadow(0 0 40px rgba(255,255,255,0.05))',
-              transition: 'width 2s cubic-bezier(0.16, 1, 0.3, 1)',
-              willChange: 'width',
-              animation: hasInteracted ? 'none' : 'pulseLogo 4s ease-in-out infinite alternate 1.2s',
             }}
           />
         </div>

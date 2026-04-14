@@ -76,21 +76,16 @@ export default function Navigation() {
   return (
     <>
       {/* 
-        Progressive blur fade avoiding Chromium rendering artifacts. 
-        Uses multiple layers of increasing blur with offset mask gradients 
-        to create a buttery smooth transition into the content.
-        Provides legibility for the top navigation icons.
+        Progressive blur — single composite layer instead of 6 stacked blur passes.
+        The gradient provides 90% of the visual effect; the single blur adds subtle frosting.
       */}
-      {/* Single-layer progressive blur — replaces 4 stacked backdrop-filter layers for ~75% compositing savings */}
-      <div 
-        className="fixed top-0 left-0 w-full h-40 z-[9998] pointer-events-none opacity-100"
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/50 to-transparent" />
+      <div className="fixed top-0 left-0 w-full h-40 z-[9998] pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-black/60 to-transparent" />
         <div className="absolute inset-0" style={{ 
           backdropFilter: 'blur(12px)', 
           WebkitBackdropFilter: 'blur(12px)', 
-          maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)', 
-          WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)' 
+          maskImage: 'linear-gradient(to bottom, black 0%, black 40%, transparent 100%)', 
+          WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 40%, transparent 100%)' 
         }} />
       </div>
 

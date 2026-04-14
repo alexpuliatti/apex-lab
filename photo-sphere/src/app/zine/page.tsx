@@ -1,19 +1,6 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import StairScene from '../../components/StairScene'
-
 export default function ZinePage() {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) return <div className="min-h-screen bg-black" />
-
-  return (
-    <main className="h-[100dvh] w-full bg-black overflow-hidden">
-      <StairScene />
-    </main>
-  )
+  // Navigation root. The StairScene is rendered permanently in the parent layout.
+  // When no specific chapter is selected, we just render an empty view to let 
+  // the 3D scene handle all interactions.
+  return null;
 }
