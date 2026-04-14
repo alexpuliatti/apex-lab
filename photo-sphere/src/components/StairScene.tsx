@@ -76,24 +76,41 @@ const CHAPTERS: Chapter[] = [
   },
 ]
 
-function ResponsiveGroup({ children }: { children: React.ReactNode }) {
+function StairStack({ activeStair, setActiveStair, handleClick }: any) {
   const { viewport } = useThree()
-  // Base width of the books is 16. We want it to occupy at most 90% of the screen width.
-  const scale = Math.min(1, (viewport.width * 0.9) / 16)
+  const isMobile = viewport.width < 12 
+  
+  const logicalWidth = isMobile ? 8.5 : 16
+  const scale = Math.min(1, (viewport.width * 0.9) / logicalWidth)
 
-  return <group scale={scale}>{children}</group>
+  return (
+    <group scale={scale}>
+      {CHAPTERS.map((chapter, index) => (
+        <Stair 
+          key={chapter.id} 
+          index={index} 
+          chapter={chapter} 
+          active={activeStair}
+          onHover={setActiveStair}
+          onClick={handleClick}
+          isMobile={isMobile}
+          logicalWidth={logicalWidth}
+        />
+      ))}
+    </group>
+  )
 }
 
-function Stair({ index, chapter, active, onHover, onClick }: { index: number, chapter: Chapter, active: number | null, onHover: (n: number | null) => void, onClick: (n: number, x: number, y: number) => void }) {
+function Stair({ index, chapter, active, onHover, onClick, isMobile, logicalWidth }: { index: number, chapter: Chapter, active: number | null, onHover: (n: number | null) => void, onClick: (n: number, x: number, y: number) => void, isMobile: boolean, logicalWidth: number }) {
   const groupRef = useRef<THREE.Group>(null)
   const matRef = useRef<THREE.MeshPhysicalMaterial>(null)
   const isHovered = active === index
 
-  const width = 16
-  const height = 1.4
+  const width = logicalWidth
+  const height = isMobile ? 1.8 : 1.4
   const depth = 8
   
-  const yOffset = height + 0.8
+  const yOffset = height + (isMobile ? 0.4 : 0.8)
   
   const baseX = 0
   const baseY = -(index - 2) * yOffset
@@ -160,7 +177,7 @@ function Stair({ index, chapter, active, onHover, onClick }: { index: number, ch
           <Text
             position={[0, 0, 0]}
             font="/fonts/Geist-Regular.ttf"
-            fontSize={0.25}
+            fontSize={isMobile ? 0.35 : 0.25}
             color={"#ffffff"}
             anchorX="left"
             anchorY="middle"
@@ -171,7 +188,7 @@ function Stair({ index, chapter, active, onHover, onClick }: { index: number, ch
           <Text
             position={[1.5, 0, 0]}
             font="/fonts/Arrow Font Regular.otf"
-            fontSize={0.4}
+            fontSize={isMobile ? 0.5 : 0.4}
             color={"#ffffff"}
             anchorX="left"
             anchorY="middle"
@@ -181,29 +198,33 @@ function Stair({ index, chapter, active, onHover, onClick }: { index: number, ch
             {chapter.title}
           </Text>
           
-          <Text
-            position={[6.5, 0, 0]}
-            font="/fonts/Geist-Regular.ttf"
-            fontSize={0.25}
-            color={isHovered ? "#222" : "#888"}
-            fontStyle="italic"
-            anchorX="left"
-            anchorY="middle"
-          >
-            {chapter.subtitle}
-          </Text>
-          
-          <Text
-            position={[11, 0, 0]}
-            font="/fonts/Geist-Regular.ttf"
-            fontSize={0.22}
-            color={isHovered ? "#222" : "#aaaaaa"}
-            anchorX="left"
-            anchorY="middle"
-            maxWidth={3}
-          >
-            {chapter.info}
-          </Text>
+          {!isMobile && (
+            <>
+              <Text
+                position={[6.5, 0, 0]}
+                font="/fonts/Geist-Regular.ttf"
+                fontSize={0.25}
+                color={isHovered ? "#222" : "#888"}
+                fontStyle="italic"
+                anchorX="left"
+                anchorY="middle"
+              >
+                {chapter.subtitle}
+              </Text>
+              
+              <Text
+                position={[11, 0, 0]}
+                font="/fonts/Geist-Regular.ttf"
+                fontSize={0.22}
+                color={isHovered ? "#222" : "#aaaaaa"}
+                anchorX="left"
+                anchorY="middle"
+                maxWidth={3}
+              >
+                {chapter.info}
+              </Text>
+            </>
+          )}
         </group>
       </group>
     </group>
@@ -451,7 +472,7 @@ function ChapterDetail({ chapter, onBack, themeColor, isClosing }: { chapter: ty
           </ScrollFadeSection>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pb-32">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pb-32 items-start">
           {[
             { name: "Alma Dowdall", role: "Music Artist", description: "Targets topics of existentialism adding to Gen Z culture with alternative pop/electronic music." },
             { name: "Alex Puliatti", role: "Digital Designer", description: "Working in the digital design department giving Gen Z perspective to luxury fashion conglomerates." },
@@ -459,7 +480,7 @@ function ChapterDetail({ chapter, onBack, themeColor, isClosing }: { chapter: ty
             { name: "Shumon Basar", role: "Writer & Curator", description: "Specializing in analysis of the digital sphere from a creative perspective." }
           ].map((person, i) => (
             <ScrollFadeSection key={`person-${i}`} delayIndex={i + 1}>
-              <div className="p-6 border border-white/10 h-full hover:bg-white/5 transition-colors duration-300">
+              <div className="p-6 border border-white/10 hover:bg-white/5 transition-colors duration-300">
                 <h3 className="font-mono text-sm font-bold uppercase text-white mb-1">{person.name}</h3>
                 <span className="font-mono text-xs uppercase text-white/40 block mb-4" style={{ color: themeColor }}>{person.role}</span>
                 <p className="text-sm font-medium text-white/70 leading-relaxed">
@@ -540,18 +561,11 @@ export default function StairScene() {
           <directionalLight position={[15, 20, 10]} intensity={1.2} />
           <Environment preset="city" />
           
-          <ResponsiveGroup>
-            {CHAPTERS.map((chapter, index) => (
-              <Stair 
-                key={chapter.id} 
-                index={index} 
-                chapter={chapter} 
-                active={activeStair}
-                onHover={setActiveStair}
-                onClick={handleClick}
-              />
-            ))}
-          </ResponsiveGroup>
+          <StairStack 
+            activeStair={activeStair}
+            setActiveStair={setActiveStair}
+            handleClick={handleClick}
+          />
         </Canvas>
       </div>
 
