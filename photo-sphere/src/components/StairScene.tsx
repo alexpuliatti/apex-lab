@@ -166,15 +166,13 @@ function Stair({ index, chapter, active, onHover, onClick, isMobile, logicalWidt
         <RoundedBox args={[width, height, depth]} radius={0.3} smoothness={4} raycast={() => null}>
           <meshPhysicalMaterial
             ref={matRef}
-            transmission={0.92}
-            thickness={3}
-            roughness={0.35}
-            ior={1.4}
+            roughness={0.3}
+            metalness={0.05}
             clearcoat={1}
             clearcoatRoughness={0.15}
+            envMapIntensity={1.2}
             transparent
-            opacity={0.95}
-            envMapIntensity={0.5}
+            opacity={0.85}
             side={THREE.DoubleSide}
           />
         </RoundedBox>
@@ -561,6 +559,7 @@ export default function StairScene() {
         <Canvas 
           camera={{ position: [0, 0, 30], fov: 35 }}
           dpr={[1, 1.5]}
+          frameloop={is3DHidden ? 'never' : 'always'}
           gl={{ antialias: true, powerPreference: 'high-performance' }}
           style={{ width: '100%', height: '100%' }}
         >

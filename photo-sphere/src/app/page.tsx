@@ -11,6 +11,14 @@ import Navigation from '@/components/Navigation'
 // Import data
 import { nodes as initialNodes, links as initialLinks } from "../data/graphData"
 
+// ── Pre-allocated scratch vectors for zero-GC physics ──
+const _diff = new THREE.Vector3()
+const _force = new THREE.Vector3()
+const _tmpVel = new THREE.Vector3()
+const ORIGIN = new THREE.Vector3(0, 0, 0)
+const _lookDir = new THREE.Vector3()
+const _lookTarget = new THREE.Vector3()
+
 function ImageNode({ node, onClick, highlightState }: { node: any, onClick: () => void, highlightState: 'connected' | 'dimmed' | 'none' }) {
   const meshRef = useRef<THREE.Mesh>(null)
   const [hovered, setHovered] = useState(false)
@@ -29,13 +37,13 @@ function ImageNode({ node, onClick, highlightState }: { node: any, onClick: () =
   useFrame(() => {
     if (meshRef.current) {
       meshRef.current.position.set(node.pos.x, node.pos.y, node.pos.z)
-      const lookAtPos = new THREE.Vector3(0, 0, 0)
-      const currentPos = meshRef.current.position.clone()
       
-      if (!currentPos.equals(lookAtPos)) {
-        const direction = currentPos.sub(lookAtPos).normalize()
-        const target = meshRef.current.position.clone().add(direction)
-        meshRef.current.lookAt(target)
+      // Reuse scratch vectors instead of allocating new ones every frame
+      _lookDir.copy(meshRef.current.position).sub(ORIGIN)
+      if (_lookDir.lengthSq() > 0.001) {
+        _lookDir.normalize()
+        _lookTarget.copy(meshRef.current.position).add(_lookDir)
+        meshRef.current.lookAt(_lookTarget)
       }
       
       // Smooth opacity lerp
@@ -380,6 +388,9 @@ function GraphScene({ autoRotate, restartKey, links, onSelectNode, onSelectImage
       rn.pos.set((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100)
       rn.vel.set(0, 0, 0)
     })
+    // Reset settle state when physics restart
+    settledRef.current = false
+    settleCounterRef.current = 0
   }, [physicsNodes])
 
   useEffect(() => {
@@ -394,6 +405,10 @@ function GraphScene({ autoRotate, restartKey, links, onSelectNode, onSelectImage
   const [lockedNodeId, setLockedNodeId] = useState<string | null>(null)
   const hoveredRef = useRef<string | null>(null)
   const lockedRef = useRef<string | null>(null)
+  
+  // Settle detection: track kinetic energy to pause physics when stable
+  const settledRef = useRef(false)
+  const settleCounterRef = useRef(0)
   
 
   
@@ -417,61 +432,90 @@ function GraphScene({ autoRotate, restartKey, links, onSelectNode, onSelectImage
     const frozen = hoveredRef.current || lockedRef.current
     if (frozen) return
 
+    // Skip physics entirely once settled (massive CPU savings)
+    if (settledRef.current) {
+      // Still allow auto-rotate when settled
+      if (groupRef.current && autoRotate) {
+        groupRef.current.rotation.y += delta * 0.12
+      }
+      return
+    }
+
     const dt = Math.min(delta, 0.1) 
     
-    // 1. Repulsive forces (node-type aware)
+    // 1. Repulsive forces (node-type aware) — zero allocation
     for (let i = 0; i < physicsNodes.length; i++) {
       for (let j = i + 1; j < physicsNodes.length; j++) {
         const n1 = physicsNodes[i]
         const n2 = physicsNodes[j]
-        const diff = n1.pos.clone().sub(n2.pos)
-        let dist = diff.length()
+        _diff.copy(n1.pos).sub(n2.pos)
+        let dist = _diff.length()
         if (dist === 0) {
-          diff.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize()
+          _diff.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize()
           dist = 0.1
         }
         if (dist < 70) {
           const s1 = (n1.size || 1)
           const s2 = (n2.size || 1)
           const repulsionStrength = 400 * (s1 + s2) / 2
-          const force = diff.normalize().multiplyScalar(repulsionStrength / (dist * dist))
-          n1.vel.add(force.clone().multiplyScalar(dt))
-          n2.vel.sub(force.clone().multiplyScalar(dt))
+          const forceMag = repulsionStrength / (dist * dist) * dt
+          _force.copy(_diff).normalize().multiplyScalar(forceMag)
+          n1.vel.add(_force)
+          n2.vel.sub(_force)
           
           if (dist < 18) {
-            const pushForce = diff.clone().normalize().multiplyScalar(15 * (18 - dist))
-            n1.vel.add(pushForce.clone().multiplyScalar(dt))
-            n2.vel.sub(pushForce.clone().multiplyScalar(dt))
+            const pushMag = 15 * (18 - dist) * dt
+            _force.copy(_diff).normalize().multiplyScalar(pushMag)
+            n1.vel.add(_force)
+            n2.vel.sub(_force)
           }
         }
       }
     }
     
-    // 2. Spring forces
-    links.forEach(link => {
+    // 2. Spring forces — zero allocation
+    for (let i = 0; i < links.length; i++) {
+      const link = links[i]
       const source = nodeMap.get(link.source)
       const target = nodeMap.get(link.target)
       if (source && target) {
-        const diff = target.pos.clone().sub(source.pos)
-        const dist = diff.length()
+        _diff.copy(target.pos).sub(source.pos)
+        const dist = _diff.length()
         const targetDist = getSpringLength(link.type)
-        const force = diff.normalize().multiplyScalar((dist - targetDist) * 0.5)
-        source.vel.add(force.clone().multiplyScalar(dt))
-        target.vel.sub(force.clone().multiplyScalar(dt))
+        const forceMag = (dist - targetDist) * 0.5 * dt
+        _force.copy(_diff).normalize().multiplyScalar(forceMag)
+        source.vel.add(_force)
+        target.vel.sub(_force)
       }
-    })
+    }
 
-    // 3. Central gravity
-    physicsNodes.forEach(node => {
+    // 3. Central gravity — zero allocation
+    let totalEnergy = 0
+    for (let i = 0; i < physicsNodes.length; i++) {
+      const node = physicsNodes[i]
       const gravityStrength = node.type === 'chapter' || node.type === 'era' ? 0.5 : 0.25
-      node.vel.add(node.pos.clone().normalize().multiplyScalar(-gravityStrength * dt))
-    })
+      _force.copy(node.pos).normalize().multiplyScalar(-gravityStrength * dt)
+      node.vel.add(_force)
+    }
 
-    // 4. Update positions & apply friction
-    physicsNodes.forEach(node => {
+    // 4. Update positions & apply friction — zero allocation
+    for (let i = 0; i < physicsNodes.length; i++) {
+      const node = physicsNodes[i]
       node.vel.multiplyScalar(0.88)
-      node.pos.add(node.vel.clone().multiplyScalar(dt))
-    })
+      _tmpVel.copy(node.vel).multiplyScalar(dt)
+      node.pos.add(_tmpVel)
+      totalEnergy += node.vel.lengthSq()
+    }
+
+    // 5. Settle detection: if total kinetic energy is negligible, pause physics
+    if (totalEnergy < 0.01) {
+      settleCounterRef.current++
+      if (settleCounterRef.current > 120) { // ~2 seconds at 60fps
+        settledRef.current = true
+      }
+    } else {
+      settleCounterRef.current = 0
+    }
 
     if (groupRef.current && autoRotate) {
       groupRef.current.rotation.y += delta * 0.12
@@ -595,6 +639,8 @@ export default function PhotoSphere() {
         }}>
           <Canvas 
             camera={{ position: [0, 0, 160], fov: 60 }}
+            dpr={[1, 1.5]}
+            gl={{ antialias: true, powerPreference: 'high-performance' }}
             onPointerMissed={() => setMissedTrigger(t => t + 1)}
             style={{ pointerEvents: hasInteracted ? 'auto' : 'none' }}
           >

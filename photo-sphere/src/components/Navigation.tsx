@@ -81,16 +81,19 @@ export default function Navigation() {
         to create a buttery smooth transition into the content.
         Provides legibility for the top navigation icons.
       */}
+      {/* Single-layer progressive blur — replaces 4 stacked backdrop-filter layers for ~75% compositing savings */}
       <div 
         className={`fixed top-0 left-0 w-full h-40 z-[9998] pointer-events-none transition-opacity duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${
           scrolled ? 'opacity-100' : 'opacity-0'
         }`}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/50 to-transparent" />
-        <div className="absolute inset-0" style={{ backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)' }} />
-        <div className="absolute inset-0" style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', maskImage: 'linear-gradient(to bottom, black 40%, transparent 80%)', WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 80%)' }} />
-        <div className="absolute inset-0" style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', maskImage: 'linear-gradient(to bottom, black 20%, transparent 60%)', WebkitMaskImage: 'linear-gradient(to bottom, black 20%, transparent 60%)' }} />
-        <div className="absolute inset-0" style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', maskImage: 'linear-gradient(to bottom, black 0%, transparent 40%)', WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 40%)' }} />
+        <div className="absolute inset-0" style={{ 
+          backdropFilter: 'blur(12px)', 
+          WebkitBackdropFilter: 'blur(12px)', 
+          maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)', 
+          WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)' 
+        }} />
       </div>
 
       {/* Floating Top Navigation - Only visible upon scroll */}
