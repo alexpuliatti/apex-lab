@@ -123,7 +123,7 @@ function Stair({ index, chapter, active, onHover, onClick, isMobile, logicalWidt
     return () => clearTimeout(timer)
   }, [index])
 
-  const targetX = mounted ? (isHovered ? baseX + 1 : baseX) : baseX + 15
+  const targetX = isHovered ? baseX + 1 : baseX
   
   const baseColor = useMemo(() => new THREE.Color("#151515"), [])
   const hoverColor = useMemo(() => new THREE.Color(chapter.themeColor), [chapter.themeColor])
@@ -132,13 +132,29 @@ function Stair({ index, chapter, active, onHover, onClick, isMobile, logicalWidt
   // Spring behavior values
   useFrame((_, delta) => {
     const d = Math.min(delta, 0.1)
+    
     if (groupRef.current) {
-      groupRef.current.position.x = THREE.MathUtils.damp(groupRef.current.position.x, targetX, 8, d)
+      if (mounted) {
+        groupRef.current.position.x = THREE.MathUtils.damp(groupRef.current.position.x, targetX, 8, d)
+        groupRef.current.position.y = THREE.MathUtils.damp(groupRef.current.position.y, 0, 8, d)
+        const s = THREE.MathUtils.damp(groupRef.current.scale.x, 1, 8, d)
+        groupRef.current.scale.setScalar(s)
+      } else {
+        groupRef.current.position.x = baseX
+        groupRef.current.position.y = -0.4
+        groupRef.current.scale.setScalar(0.92)
+      }
     }
+    
     if (matRef.current) {
-      matRef.current.color.lerp(isHovered ? hoverColor : baseColor, d * 8)
-      matRef.current.emissive.lerp(isHovered ? hoverColor : baseEmissive, d * 8)
-      matRef.current.emissiveIntensity = THREE.MathUtils.damp(matRef.current.emissiveIntensity, isHovered ? 0.8 : 0, 8, d)
+      if (mounted) {
+        matRef.current.opacity = THREE.MathUtils.damp(matRef.current.opacity, 0.85, 8, d)
+        matRef.current.color.lerp(isHovered ? hoverColor : baseColor, d * 8)
+        matRef.current.emissive.lerp(isHovered ? hoverColor : baseEmissive, d * 8)
+        matRef.current.emissiveIntensity = THREE.MathUtils.damp(matRef.current.emissiveIntensity, isHovered ? 0.8 : 0, 8, d)
+      } else {
+        matRef.current.opacity = 0
+      }
     }
   })
 
@@ -161,8 +177,8 @@ function Stair({ index, chapter, active, onHover, onClick, isMobile, logicalWidt
         <meshBasicMaterial visible={false} />
       </mesh>
 
-      {/* Visual book — animates freely */}
-      <group ref={groupRef} position={[15, 0, 0]}>
+      {/* Visual book — smoothly scales and glides in */}
+      <group ref={groupRef} visible={mounted}>
         <RoundedBox args={[width, height, depth]} radius={0.3} smoothness={4} raycast={() => null}>
           <meshPhysicalMaterial
             ref={matRef}
@@ -183,7 +199,7 @@ function Stair({ index, chapter, active, onHover, onClick, isMobile, logicalWidt
             position={[0, 0, 0]}
             font="/fonts/Geist-Regular.ttf"
             fontSize={isMobile ? 0.35 : 0.25}
-            color={"#ffffff"}
+            color={isHovered ? "#222" : "#ffffff"}
             anchorX="left"
             anchorY="middle"
           >
@@ -193,8 +209,8 @@ function Stair({ index, chapter, active, onHover, onClick, isMobile, logicalWidt
           <Text
             position={[1.5, 0, 0]}
             font="/fonts/Arrow-Font-Regular.otf"
-            fontSize={isMobile ? 0.5 : 0.4}
-            color={"#ffffff"}
+            fontSize={isMobile ? 0.42 : 0.32}
+            color={isHovered ? "#222" : "#ffffff"}
             anchorX="left"
             anchorY="middle"
             maxWidth={5}

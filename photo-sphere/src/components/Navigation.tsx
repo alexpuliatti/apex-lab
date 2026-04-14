@@ -83,9 +83,7 @@ export default function Navigation() {
       */}
       {/* Single-layer progressive blur — replaces 4 stacked backdrop-filter layers for ~75% compositing savings */}
       <div 
-        className={`fixed top-0 left-0 w-full h-40 z-[9998] pointer-events-none transition-opacity duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${
-          scrolled ? 'opacity-100' : 'opacity-0'
-        }`}
+        className="fixed top-0 left-0 w-full h-40 z-[9998] pointer-events-none opacity-100"
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/50 to-transparent" />
         <div className="absolute inset-0" style={{ 
@@ -96,18 +94,28 @@ export default function Navigation() {
         }} />
       </div>
 
-      {/* Floating Top Navigation - Only visible upon scroll */}
+      {/* Floating Top Navigation - Always visible */}
       <nav 
-        className={`fixed top-6 left-6 right-6 md:top-8 md:left-12 md:right-12 z-[9999] flex items-center justify-between transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${
-          scrolled ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'
-        }`}
+        className="fixed top-6 left-6 right-6 md:top-8 md:left-12 md:right-12 z-[9999] flex items-center justify-between h-10 pointer-events-auto opacity-100 translate-y-0"
       >
         <Link 
           href="/" 
-          className="text-2xl tracking-tighter text-white no-underline hover:opacity-70 transition-opacity drop-shadow-md" 
-          style={{ fontFamily: 'ArrowFont, serif', lineHeight: 1 }}
+          className="transition-opacity hover:opacity-100 opacity-60 flex items-center h-full" 
         >
-          APEX LAB
+          {pathname === '/' ? (
+             /* Spacer so flex layout stays the exact same on the homepage, where page.tsx renders the animated, moving logo into this space */
+             <div style={{ width: '80px' }} />
+          ) : (
+             <img 
+               src="/materials/apex_logo.png" 
+               alt="Apex Logo" 
+               style={{
+                 width: '80px',
+                 objectFit: 'contain',
+                 filter: 'drop-shadow(0 0 40px rgba(255,255,255,0.05))',
+               }}
+             />
+          )}
         </Link>
 
         {/* 3 Minimal Geometric Icons Cluster */}

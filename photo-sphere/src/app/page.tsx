@@ -675,10 +675,8 @@ export default function PhotoSphere() {
         </div>
 
         <div 
-          className="absolute z-10 pointer-events-none"
+          className={`fixed z-[10000] pointer-events-none flex items-center justify-center ${hasInteracted ? 'top-6 left-6 md:top-8 md:left-12 h-10' : 'top-1/2 left-1/2'}`}
           style={{
-            top: hasInteracted ? '24px' : '50%',
-            left: hasInteracted ? '24px' : '50%',
             transform: hasInteracted 
               ? 'translate(0, 0) scale(1)' 
               : `translate(-50%, -50%) scale(${mounted ? 1.25 : 1})`,
