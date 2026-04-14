@@ -194,7 +194,7 @@ function Stair({ index, chapter, active, onHover, onClick, isMobile, logicalWidt
           
           <Text
             position={[1.5, 0, 0]}
-            font="/fonts/Arrow Font Regular.otf"
+            font="/fonts/Arrow-Font-Regular.otf"
             fontSize={isMobile ? 0.5 : 0.4}
             color={"#ffffff"}
             anchorX="left"

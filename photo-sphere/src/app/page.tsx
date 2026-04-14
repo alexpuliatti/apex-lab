@@ -79,21 +79,21 @@ function getNodeStyle(type: string, size: number = 1, hovered: boolean = false) 
   const sizeScale = size || 1
   switch (type) {
     case 'chapter': return {
-      font: '/fonts/Arrow Font Regular.otf',
+      font: '/fonts/Arrow-Font-Regular.otf',
       fontSize: (hovered ? 1.1 : 0.9) * sizeScale,
       color: hovered ? '#ffffff' : '#e0e0e0',
       outlineWidth: 0.04,
       maxWidth: 18,
     }
     case 'era': return {
-      font: '/fonts/Arrow Font Regular.otf',
+      font: '/fonts/Arrow-Font-Regular.otf',
       fontSize: (hovered ? 0.9 : 0.75) * sizeScale,
       color: hovered ? '#ffd700' : '#c9a84c',
       outlineWidth: 0.03,
       maxWidth: 14,
     }
     case 'concept': return {
-      font: '/fonts/Arrow Font Regular.otf',
+      font: '/fonts/Arrow-Font-Regular.otf',
       fontSize: (hovered ? 0.8 : 0.65) * sizeScale,
       color: hovered ? '#ffffff' : '#C2384D',
       outlineWidth: 0.03,
@@ -114,7 +114,7 @@ function getNodeStyle(type: string, size: number = 1, hovered: boolean = false) 
       maxWidth: 12,
     }
     default: return {
-      font: '/fonts/Arrow Font Regular.otf',
+      font: '/fonts/Arrow-Font-Regular.otf',
       fontSize: 0.6,
       color: '#C2384D',
       outlineWidth: 0.03,
@@ -575,7 +575,7 @@ export default function PhotoSphere() {
         }
         @font-face {
           font-family: 'ArrowFont';
-          src: url('/fonts/Arrow Font Regular.otf') format('opentype');
+          src: url('/fonts/Arrow-Font-Regular.otf') format('opentype');
           font-weight: normal;
           font-style: normal;
         }
