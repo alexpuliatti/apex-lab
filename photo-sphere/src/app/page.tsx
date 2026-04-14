@@ -553,7 +553,6 @@ function GraphScene({ autoRotate, restartKey, links, onSelectNode, onSelectImage
 export default function PhotoSphere() {
   const [autoRotate, setAutoRotate] = useState(true)
   const [mounted, setMounted] = useState(false)
-  const [hasInteracted, setHasInteracted] = useState(false)
   const [clickedButton, setClickedButton] = useState<string | null>(null)
   const [simulationRestartKey, setSimulationRestartKey] = useState(0)
   const [selectedKeyword, setSelectedKeyword] = useState<any | null>(null)
@@ -561,6 +560,13 @@ export default function PhotoSphere() {
   const [showHint, setShowHint] = useState(false)
   const [missedTrigger, setMissedTrigger] = useState(0)
   const [zoomReady, setZoomReady] = useState(false)
+
+  // Detect if user is returning (from another page or already explored)
+  const isReturning = typeof window !== 'undefined' && (
+    window.location.hash === '#graph' ||
+    sessionStorage.getItem('apex-explored') === '1'
+  )
+  const [hasInteracted, setHasInteracted] = useState(isReturning)
 
   // HQ images for lightbox (originals ~1.7MB each)
   const allImages = useMemo(() => 
@@ -570,13 +576,16 @@ export default function PhotoSphere() {
   // Map a thumbnail path to its HQ equivalent
   const toHQ = (path: string) => path.replace('CS_slides/', 'CS_slides_hq/')
 
+  // Mark as explored once user interacts
+  useEffect(() => {
+    if (hasInteracted && typeof window !== 'undefined') {
+      sessionStorage.setItem('apex-explored', '1')
+    }
+  }, [hasInteracted])
+
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 100)
     const hintTimer = setTimeout(() => setShowHint(true), 300)
-    
-    if (typeof window !== 'undefined' && window.location.hash === '#graph') {
-      setHasInteracted(true)
-    }
 
     return () => {
       clearTimeout(timer)
@@ -655,26 +664,51 @@ export default function PhotoSphere() {
           </Canvas>
         </div>
 
+        {/* Animated Logo — starts centered+large on first visit, shrinks to nav corner on interact */}
         <div 
-          className="fixed z-[10000] pointer-events-none flex items-center justify-center top-6 left-6 md:top-8 md:left-12 h-10"
+          className="fixed z-[10000] pointer-events-none flex items-center justify-center"
           style={{
-            opacity: mounted ? 0.6 : 0,
-            transition: 'opacity 1s ease',
+            opacity: mounted ? (hasInteracted ? 0.6 : 0.9) : 0,
+            transition: hasInteracted
+              ? 'all 2s cubic-bezier(0.2, 0.8, 0.2, 1)'
+              : 'opacity 1s ease',
+            ...(hasInteracted ? {
+              // Corner position — matches Navigation spacer
+              top: 'var(--logo-top, 24px)',
+              left: 'var(--logo-left, 24px)',
+              width: '80px',
+              height: '40px',
+            } : {
+              // Centered hero position
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '220px',
+              height: 'auto',
+            }),
           }}
         >
+          <style dangerouslySetInnerHTML={{__html: `
+            @media (min-width: 768px) {
+              :root { --logo-top: 32px; --logo-left: 48px; }
+            }
+          `}} />
           <img 
             src="/materials/apex_logo.png" 
             alt="Apex Logo" 
             style={{
-              width: '80px',
+              width: hasInteracted ? '80px' : '220px',
               height: 'auto',
               objectFit: 'contain' as const,
-              filter: 'drop-shadow(0 0 40px rgba(255,255,255,0.05))',
+              filter: hasInteracted 
+                ? 'drop-shadow(0 0 40px rgba(255,255,255,0.05))' 
+                : 'drop-shadow(0 0 60px rgba(255,255,255,0.15))',
+              transition: 'all 2s cubic-bezier(0.2, 0.8, 0.2, 1)',
             }}
           />
         </div>
 
-        {/* Scroll/Interact Hint */}
+        {/* Scroll/Interact Hint — below logo on first visit */}
         <div 
           className="absolute bottom-16 left-0 right-0 flex flex-col items-center gap-3 pointer-events-none transition-all duration-1000 ease-[cubic-bezier(0.2,0.8,0.2,1)]"
           style={{
