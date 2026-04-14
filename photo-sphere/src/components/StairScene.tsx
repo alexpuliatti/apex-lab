@@ -116,7 +116,14 @@ function Stair({ index, chapter, active, onHover, onClick, isMobile, logicalWidt
   const baseY = -(index - 2) * yOffset
   const baseZ = 0
 
-  const targetX = isHovered ? baseX + 1 : baseX
+  // Progressive entrance state
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 150 + index * 100)
+    return () => clearTimeout(timer)
+  }, [index])
+
+  const targetX = mounted ? (isHovered ? baseX + 1 : baseX) : baseX + 15
   
   const baseColor = useMemo(() => new THREE.Color("#151515"), [])
   const hoverColor = useMemo(() => new THREE.Color(chapter.themeColor), [chapter.themeColor])
@@ -155,7 +162,7 @@ function Stair({ index, chapter, active, onHover, onClick, isMobile, logicalWidt
       </mesh>
 
       {/* Visual book — animates freely */}
-      <group ref={groupRef}>
+      <group ref={groupRef} position={[15, 0, 0]}>
         <RoundedBox args={[width, height, depth]} radius={0.3} smoothness={4} raycast={() => null}>
           <meshPhysicalMaterial
             ref={matRef}
@@ -559,7 +566,9 @@ export default function StairScene() {
         >
           <ambientLight intensity={0.4} color="#ffffff" />
           <directionalLight position={[15, 20, 10]} intensity={1.2} />
-          <Environment preset="city" />
+          <React.Suspense fallback={null}>
+            <Environment preset="city" />
+          </React.Suspense>
           
           <StairStack 
             activeStair={activeStair}
