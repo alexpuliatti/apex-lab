@@ -186,28 +186,52 @@ function initScrollReveal() {
 
 
 /* ========================================
-   MOUSE MOTION SCROLL
-   Moving the mouse over the crossfade advances the scroll
+   HOVER AUTO-SCROLL
+   Hovering over the crossfade advances the scroll continuously
    ======================================== */
 
 function initMouseMotionScroll() {
   const viewport = document.querySelector('.crossfade__viewport');
-  if (!viewport) return;
+  const container = document.querySelector('.crossfade');
+  if (!viewport || !container) return;
+
+  let isHovering = false;
+  let hoverRafId = null;
+
+  viewport.addEventListener('mouseenter', () => {
+    isHovering = true;
+    if (!hoverRafId) {
+      hoverRafId = requestAnimationFrame(autoScroll);
+    }
+  });
+
+  viewport.addEventListener('mouseleave', () => {
+    isHovering = false;
+    if (hoverRafId) {
+      cancelAnimationFrame(hoverRafId);
+      hoverRafId = null;
+    }
+  });
 
   viewport.addEventListener('mousemove', (e) => {
     // Update mask target position based on mouse
     const rect = viewport.getBoundingClientRect();
     targetMaskX = ((e.clientX - rect.left) / rect.width) * 100;
     targetMaskY = ((e.clientY - rect.top) / rect.height) * 100;
+  });
 
-    // Only trigger if it's a significant movement to avoid micro-jitters
-    const distance = Math.sqrt(e.movementX ** 2 + e.movementY ** 2);
-    
-    if (distance > 1) {
+  function autoScroll() {
+    if (!isHovering) return;
+
+    const rect = container.getBoundingClientRect();
+    // Only auto-scroll if we haven't reached the end of the crossfade section
+    if (rect.bottom > window.innerHeight) {
       window.scrollBy({
-        top: distance * 3.5, // Sensitivity multiplier increased
+        top: 75, // Dramatically increased auto-scroll speed
         behavior: 'auto'
       });
     }
-  });
+
+    hoverRafId = requestAnimationFrame(autoScroll);
+  }
 }
